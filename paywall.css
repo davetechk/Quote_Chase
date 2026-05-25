@@ -1,0 +1,91 @@
+/* ─── Paywall Overlay ────────────────────────────────────────────────────────── */
+/* Sits on top of dashboard content when trial has expired */
+
+#qc-paywall {
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+  background: rgba(10, 12, 17, 0.88);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  animation: fadeIn 0.3s ease;
+}
+
+.paywall-box {
+  background: var(--bg-2);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-xl);
+  padding: 56px 48px;
+  max-width: 480px;
+  width: 100%;
+  text-align: center;
+  animation: fadeUp 0.35s ease;
+  box-shadow: var(--shadow-lg);
+}
+
+@media (max-width: 500px) {
+  .paywall-box { padding: 36px 24px; }
+}
+
+.paywall-icon {
+  font-size: 3rem;
+  margin-bottom: 20px;
+  opacity: 0.7;
+}
+
+.paywall-box h2 {
+  font-size: 1.6rem;
+  margin-bottom: 12px;
+  color: var(--text);
+}
+
+.paywall-box p {
+  font-size: 0.95rem;
+  color: var(--text-3);
+  margin-bottom: 32px;
+  line-height: 1.65;
+}
+
+.paywall-plans {
+  margin-bottom: 20px;
+}
+
+.paywall-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 15px 36px;
+  border-radius: var(--radius-lg);
+  font-size: 1rem;
+  font-weight: 700;
+  transition: background var(--transition), transform var(--transition), box-shadow var(--transition);
+}
+
+.paywall-btn--primary {
+  background: var(--orange);
+  color: #fff;
+  width: 100%;
+}
+
+.paywall-btn--primary:hover {
+  background: var(--orange-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 20px var(--orange-glow);
+}
+
+.paywall-sub {
+  font-size: 0.8rem;
+  color: var(--text-3);
+  margin-bottom: 0 !important;
+}
+
+.paywall-sub a {
+  color: var(--orange);
+}
+
+.paywall-sub a:hover {
+  text-decoration: underline;
+}
