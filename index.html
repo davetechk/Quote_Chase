@@ -5,8 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>QuoteChase — Win more jobs from the quotes you already send</title>
   <meta name="description" content="QuoteChase automatically follows up on every quote you send — day 2, 5, 10, and 20 — so you win more jobs without lifting a finger." />
-  <link rel="stylesheet" href="css/main.css" />
-  <link rel="icon" href="favicon.ico" />
+  <link rel="stylesheet" href="./css/main.css" />
+  <link rel="icon" href="../icon.png" type="image/x-icon">
+
   <style>
     /* ── Landing-page-specific styles ─────────────────────────────────────── */
 
@@ -992,62 +993,61 @@
     </div>
   </footer>
 
-  <script type="module">
-    import { trackVisit } from '/js/tracker.js';
-    trackVisit('/');
-
+  <!-- Calculator and smooth scroll — plain script, no imports, always runs -->
+  <script>
     // ── Ghosted Quote Calculator ────────────────────────────────────────────
-    const calcBtn    = document.getElementById('calc-btn');
-    const calcResult = document.getElementById('calc-result');
-
-    calcBtn.addEventListener('click', () => {
-      const jobValue    = parseFloat(document.getElementById('calc-job-value').value)    || 0;
-      const quotesMonth = parseFloat(document.getElementById('calc-quotes-month').value) || 0;
-      const ghostedPct  = parseFloat(document.getElementById('calc-ghosted').value)      || 0;
+    document.getElementById('calc-btn').addEventListener('click', function () {
+      var jobValue    = parseFloat(document.getElementById('calc-job-value').value)    || 0;
+      var quotesMonth = parseFloat(document.getElementById('calc-quotes-month').value) || 0;
+      var ghostedPct  = parseFloat(document.getElementById('calc-ghosted').value)      || 0;
 
       if (!jobValue || !quotesMonth || !ghostedPct) {
         document.getElementById('calc-job-value').focus();
         return;
       }
 
-      // Quotes that go silent per month
-      const ghostedPerMonth = quotesMonth * (ghostedPct / 100);
-      // Assume recovering ~30% of ghosted quotes with follow-up
-      const recoverablePct  = 0.30;
-      const recoveredJobs   = ghostedPerMonth * recoverablePct;
-
-      // Annual loss: ghosted quotes * job value * 12
-      const annualLoss      = ghostedPerMonth * jobValue * 12;
-      // Annual recovery potential
-      const annualRecovered = recoveredJobs * jobValue * 12;
+      var ghostedPerMonth = quotesMonth * (ghostedPct / 100);
+      var annualLoss      = ghostedPerMonth * jobValue * 12;
+      var annualRecovered = annualLoss * 0.30;
 
       document.getElementById('calc-lost-amount').textContent =
         '£' + Math.round(annualLoss).toLocaleString('en-GB');
 
       document.getElementById('calc-recovered').textContent =
-        `QuoteChase could help you recover ~£${Math.round(annualRecovered).toLocaleString('en-GB')} of that per year`;
+        'QuoteChase could help you recover ~£' +
+        Math.round(annualRecovered).toLocaleString('en-GB') + ' of that per year';
 
-      calcResult.classList.add('visible');
-      calcResult.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      var result = document.getElementById('calc-result');
+      result.classList.add('visible');
+      result.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     });
 
-    // Allow Enter on inputs
-    ['calc-job-value','calc-quotes-month','calc-win-rate','calc-ghosted'].forEach(id => {
-      document.getElementById(id)?.addEventListener('keydown', e => {
-        if (e.key === 'Enter') calcBtn.click();
+    // Allow Enter on calc inputs
+    ['calc-job-value','calc-quotes-month','calc-win-rate','calc-ghosted'].forEach(function(id) {
+      var el = document.getElementById(id);
+      if (el) el.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') document.getElementById('calc-btn').click();
       });
     });
 
     // ── Smooth scroll for nav links ─────────────────────────────────────────
-    document.querySelectorAll('a[href^="#"]').forEach(a => {
-      a.addEventListener('click', e => {
-        const target = document.querySelector(a.getAttribute('href'));
+    document.querySelectorAll('a[href^="#"]').forEach(function(a) {
+      a.addEventListener('click', function(e) {
+        var target = document.querySelector(a.getAttribute('href'));
         if (target) {
           e.preventDefault();
           target.scrollIntoView({ behavior: 'smooth' });
         }
       });
     });
+  </script>
+
+  <!-- Tracker — separate module, failure here won't affect anything above -->
+  <script type="module">
+    try {
+      const { trackVisit } = await import('/js/tracker.js');
+      trackVisit('/');
+    } catch (_) {}
   </script>
 
 </body>

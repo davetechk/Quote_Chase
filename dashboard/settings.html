@@ -4,10 +4,10 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Settings — QuoteChase</title>
-  <link rel="stylesheet" href="/css/main.css" />
-  <link rel="stylesheet" href="/css/dashboard.css" />
+  <link rel="stylesheet" href="../css/main.css" />
+  <link rel="stylesheet" href="../css/dashboard.css" />
   <!-- NOTE: paywall.css intentionally NOT applied here — settings is always accessible -->
-  <link rel="icon" href="/favicon.ico" />
+  <link rel="icon" href="../icon.png" type="image/x-icon">
   <style>
     .settings-field-row {
       display: grid;
@@ -211,7 +211,7 @@
   <script type="module">
     import { supabase }                                     from '/js/supabase.js';
     import { requireAuth, getProfile, renderSidebar,
-             getPlanLabel, sanitize }                        from '/js/dashboard.js';
+             hasAccess, getPlanLabel, sanitize }             from '/js/dashboard.js';
     import { signOut }                                       from '/js/auth.js';
     import { trackVisit }                                    from '/js/tracker.js';
 

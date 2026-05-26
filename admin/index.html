@@ -4,9 +4,11 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Admin — QuoteChase</title>
-  <link rel="stylesheet" href="/css/main.css" />
-  <link rel="stylesheet" href="/css/dashboard.css" />
-  <link rel="icon" href="/favicon.ico" />
+  <link rel="stylesheet" href="../css/main.css" />
+  <link rel="stylesheet" href="../css/dashboard.css" />
+  <link rel="stylesheet" href="../css/paywall.css" />
+  <link rel="icon" href="../icon.png" type="image/x-icon">
+
   <style>
     .admin-grid {
       display: grid;
@@ -213,14 +215,14 @@
   <script type="module">
     import { supabase }                               from '/js/supabase.js';
     import { requireAuth, getProfile, renderSidebar,
-             sanitize }                               from '/js/dashboard.js';
+             hasAccess, showPaywall, sanitize }        from '/js/dashboard.js';
     import { trackVisit }                             from '/js/tracker.js';
 
     trackVisit('/admin');
 
     // ── ADMIN EMAIL WHITELIST — add your email here ──────────────────────
     const ADMIN_EMAILS = [
-      'hello@quotechase.io',
+      'dave.tech.k@gmail.com',
       // add more admin emails here
     ];
 
@@ -411,6 +413,12 @@
       // Show admin panel
       document.getElementById('admin-panel').style.display = 'flex';
       renderSidebar(profile, 'admin');
+
+      if (!hasAccess(profile)) {
+        showPaywall();
+        return;
+      }
+
       await loadAdminData();
 
       document.getElementById('refresh-btn').addEventListener('click', loadAdminData);

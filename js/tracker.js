@@ -1,4 +1,4 @@
-import { supabase } from './supabase.js';
+import { supabase } from '/js/supabase.js';
 
 export async function trackVisit(page) {
   try {
@@ -10,6 +10,4 @@ export async function trackVisit(page) {
     // Non-critical — never block the page
   }
 }
-
-// Auto-track on load
-trackVisit(window.location.pathname);
+// Each page calls trackVisit() explicitly — no auto-fire here
