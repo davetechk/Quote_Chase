@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Start Free Trial — QuoteChase</title>
+  <link rel="stylesheet" href="/css/main.css" />
+  <link rel="icon" href="/favicon.ico" />
+</head>
+<body>
+  <div class="auth-page">
+    <div class="auth-card fade-up">
+
+      <div class="auth-card__logo">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 50" width="140" height="44">
+          <g transform="translate(4,7)">
+            <circle cx="18" cy="18" r="14" fill="none" stroke="#6B7280" stroke-width="3.5"/>
+            <path d="M12 23 L32 3 M32 3 L22 3 M32 3 L32 13" stroke="#FF7A00" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+          </g>
+          <text x="52" y="32" font-family="'DM Sans', sans-serif" font-size="20" font-weight="800" fill="#F8F9FA" letter-spacing="-0.5">Quote<tspan fill="#FF7A00" font-weight="400">Chase</tspan></text>
+        </svg>
+      </div>
+
+      <h1 class="auth-card__title">Start your free trial</h1>
+      <p class="auth-card__sub">14 days free. No card required. Win more jobs from your quotes.</p>
+
+      <div class="alert alert--error"   id="error-msg"   role="alert"></div>
+      <div class="alert alert--success" id="success-msg" role="status"></div>
+
+      <div class="form-group">
+        <label class="form-label" for="business-name">Business name</label>
+        <input class="form-input" type="text" id="business-name" name="business-name"
+               placeholder="Smith Roofing Ltd" autocomplete="organization" required />
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="owner-name">Your name</label>
+        <input class="form-input" type="text" id="owner-name" name="owner-name"
+               placeholder="John Smith" autocomplete="name" required />
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="email">Email address</label>
+        <input class="form-input" type="email" id="email" name="email"
+               placeholder="john@smithroofing.co.uk" autocomplete="email" required />
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="password">Password</label>
+        <input class="form-input" type="password" id="password" name="password"
+               placeholder="At least 8 characters" autocomplete="new-password" required />
+        <p class="form-hint">Minimum 8 characters</p>
+      </div>
+
+      <button class="btn btn--primary w-full mt-8" id="signup-btn" type="button">
+        <span id="btn-text">Create free account</span>
+        <span class="spinner" id="spinner"></span>
+      </button>
+
+      <p class="text-xs text-muted mt-16" style="text-align:center;line-height:1.6;">
+        By signing up you agree to our
+        <a href="/terms.html" class="text-orange">Terms</a> and
+        <a href="/privacy.html" class="text-orange">Privacy Policy</a>.
+      </p>
+
+      <div class="auth-card__footer">
+        Already have an account? <a href="/auth/login.html">Sign in</a>
+      </div>
+
+    </div>
+  </div>
+
+  <script type="module">
+    import { supabase } from '/js/supabase.js';
+    import { signUp, getSession } from '/js/auth.js';
+    import { trackVisit } from '/js/tracker.js';
+
+    trackVisit('/auth/signup');
+
+    // Redirect if already logged in
+    getSession().then(session => {
+      if (session) window.location.href = '/dashboard/index.html';
+    }).catch(() => {});
+
+    const businessNameInput = document.getElementById('business-name');
+    const ownerNameInput    = document.getElementById('owner-name');
+    const emailInput        = document.getElementById('email');
+    const passwordInput     = document.getElementById('password');
+    const signupBtn         = document.getElementById('signup-btn');
+    const btnText           = document.getElementById('btn-text');
+    const spinner           = document.getElementById('spinner');
+    const errorMsg          = document.getElementById('error-msg');
+    const successMsg        = document.getElementById('success-msg');
+
+    function setLoading(on) {
+      signupBtn.disabled = on;
+      btnText.textContent = on ? 'Creating account…' : 'Create free account';
+      spinner.classList.toggle('visible', on);
+    }
+
+    function showError(msg) {
+      errorMsg.textContent = msg;
+      errorMsg.classList.add('visible');
+      successMsg.classList.remove('visible');
+    }
+
+    function showSuccess(msg) {
+      successMsg.textContent = msg;
+      successMsg.classList.add('visible');
+      errorMsg.classList.remove('visible');
+    }
+
+    function clearMessages() {
+      errorMsg.classList.remove('visible');
+      successMsg.classList.remove('visible');
+    }
+
+    async function handleSignup() {
+      clearMessages();
+
+      const businessName = businessNameInput.value.trim();
+      const ownerName    = ownerNameInput.value.trim();
+      const email        = emailInput.value.trim();
+      const password     = passwordInput.value;
+
+      if (!businessName || !ownerName || !email || !password) {
+        showError('Please fill in all fields.');
+        return;
+      }
+      if (password.length < 8) {
+        showError('Password must be at least 8 characters.');
+        return;
+      }
+
+      setLoading(true);
+      try {
+        // 1. Create the auth user
+        const authData = await signUp(email, password);
+        const userId = authData?.user?.id;
+
+        if (!userId) {
+          // Supabase may require email confirmation — handle gracefully
+          showSuccess('Account created! Check your inbox to confirm your email, then sign in.');
+          setLoading(false);
+          return;
+        }
+
+        // 2. Create the profile row
+        const trialEnd = new Date();
+        trialEnd.setDate(trialEnd.getDate() + 14);
+
+        const { error: profileError } = await supabase.from('profiles').insert({
+          user_id:             userId,
+          business_name:       businessName,
+          owner_name:          ownerName,
+          trade:               'roofer',
+          plan:                'free',
+          subscription_status: 'trial',
+          trial_ends_at:       trialEnd.toISOString(),
+          quotes_used_this_month: 0,
+          quote_limit:         0,
+        });
+
+        if (profileError) throw profileError;
+
+        // 3. Send to onboarding to pick a plan
+        window.location.href = '/auth/onboarding.html';
+
+      } catch (err) {
+        const msg = err.message || '';
+        if (msg.toLowerCase().includes('already registered') || msg.toLowerCase().includes('already been registered')) {
+          showError('An account with this email already exists. Try signing in.');
+        } else {
+          showError(msg || 'Something went wrong. Please try again.');
+        }
+        setLoading(false);
+      }
+    }
+
+    signupBtn.addEventListener('click', handleSignup);
+
+    [businessNameInput, ownerNameInput, emailInput, passwordInput].forEach(el => {
+      el.addEventListener('keydown', e => { if (e.key === 'Enter') handleSignup(); });
+    });
+  </script>
+</body>
+</html>

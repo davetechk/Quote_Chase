@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Settings — QuoteChase</title>
+  <link rel="stylesheet" href="/css/main.css" />
+  <link rel="stylesheet" href="/css/dashboard.css" />
+  <!-- NOTE: paywall.css intentionally NOT applied here — settings is always accessible -->
+  <link rel="icon" href="/favicon.ico" />
+  <style>
+    .settings-field-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    @media (max-width: 500px) { .settings-field-row { grid-template-columns: 1fr; } }
+
+    .plan-current-box {
+      background: var(--bg-3);
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+    .plan-current-box__info { display: flex; flex-direction: column; gap: 4px; }
+    .plan-current-box__name { font-weight: 700; font-size: 1rem; color: var(--text); }
+    .plan-current-box__status { font-size: 0.825rem; color: var(--orange); font-weight: 600; }
+
+    .followup-messages { display: flex; flex-direction: column; gap: 20px; }
+    .followup-msg__label {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--text-3);
+      margin-bottom: 8px;
+    }
+    .followup-msg__day {
+      font-size: 0.8rem;
+      color: var(--orange);
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+    textarea.form-input { resize: vertical; min-height: 90px; }
+
+    .danger-zone {
+      background: var(--bg-2);
+      border: 1.5px solid rgba(220, 38, 38, 0.3);
+      border-radius: var(--radius-lg);
+      padding: 28px 32px;
+      max-width: 640px;
+    }
+    .danger-zone__title { font-size: 0.95rem; font-weight: 700; color: var(--red); margin-bottom: 8px; }
+    .danger-zone__sub   { font-size: 0.85rem; color: var(--text-3); margin-bottom: 20px; }
+  </style>
+</head>
+<body>
+  <div class="dashboard-layout">
+
+    <div id="sidebar-container"></div>
+
+    <div class="dashboard-main">
+      <header class="dashboard-header">
+        <span class="dashboard-header__title">Settings</span>
+      </header>
+
+      <main class="dashboard-body">
+
+        <div class="page-title">Settings</div>
+        <p class="page-sub">Manage your business profile, follow-up messages, and billing.</p>
+
+        <!-- ── Business Profile ──────────────────────────────────────────── -->
+        <div class="settings-section">
+          <div class="settings-section__title">Business Profile</div>
+          <div class="settings-section__sub">This info appears on quotes sent to your customers.</div>
+
+          <div class="alert alert--error"   id="profile-error"></div>
+          <div class="alert alert--success" id="profile-success"></div>
+
+          <div class="settings-field-row">
+            <div class="form-group">
+              <label class="form-label" for="business-name">Business name</label>
+              <input class="form-input" type="text" id="business-name" placeholder="Smith Roofing Ltd" />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="owner-name">Your name</label>
+              <input class="form-input" type="text" id="owner-name" placeholder="John Smith" />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="trade">Trade</label>
+            <select class="form-input" id="trade">
+              <option value="roofer">Roofer</option>
+              <option value="builder">Builder</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+
+          <button class="btn btn--primary" id="save-profile-btn" type="button">
+            <span id="profile-btn-text">Save changes</span>
+            <span class="spinner" id="profile-spinner"></span>
+          </button>
+        </div>
+
+        <!-- ── Follow-up Messages ────────────────────────────────────────── -->
+        <div class="settings-section">
+          <div class="settings-section__title">Follow-up Messages</div>
+          <div class="settings-section__sub">
+            Customise what gets sent to customers. Use <code style="background:var(--bg-3);padding:1px 5px;border-radius:4px;font-size:0.8em;">{{name}}</code> for the customer's name and <code style="background:var(--bg-3);padding:1px 5px;border-radius:4px;font-size:0.8em;">{{amount}}</code> for the quote value.
+          </div>
+
+          <div class="alert alert--error"   id="msgs-error"></div>
+          <div class="alert alert--success" id="msgs-success"></div>
+
+          <div class="followup-messages">
+
+            <div>
+              <div class="followup-msg__day">Day 2</div>
+              <div class="followup-msg__label">First nudge — friendly reminder</div>
+              <textarea class="form-input" id="msg-day2" rows="3"></textarea>
+            </div>
+
+            <div>
+              <div class="followup-msg__day">Day 5</div>
+              <div class="followup-msg__label">Second follow-up — slightly firmer</div>
+              <textarea class="form-input" id="msg-day5" rows="3"></textarea>
+            </div>
+
+            <div>
+              <div class="followup-msg__day">Day 10</div>
+              <div class="followup-msg__label">Third follow-up — create some urgency</div>
+              <textarea class="form-input" id="msg-day10" rows="3"></textarea>
+            </div>
+
+            <div>
+              <div class="followup-msg__day">Day 20</div>
+              <div class="followup-msg__label">Final follow-up — last chance</div>
+              <textarea class="form-input" id="msg-day20" rows="3"></textarea>
+            </div>
+
+          </div>
+
+          <button class="btn btn--primary mt-24" id="save-msgs-btn" type="button">
+            <span id="msgs-btn-text">Save messages</span>
+            <span class="spinner" id="msgs-spinner"></span>
+          </button>
+        </div>
+
+        <!-- ── Billing ───────────────────────────────────────────────────── -->
+        <div class="settings-section" id="billing">
+          <div class="settings-section__title">Plan &amp; Billing</div>
+          <div class="settings-section__sub">Your current plan and subscription options.</div>
+
+          <!-- Current plan -->
+          <div class="plan-current-box">
+            <div class="plan-current-box__info">
+              <div class="plan-current-box__name" id="current-plan-name">—</div>
+              <div class="plan-current-box__status" id="current-plan-status">—</div>
+            </div>
+            <div style="font-size:0.825rem;color:var(--text-3);" id="current-plan-quota">—</div>
+          </div>
+
+          <!-- Plan options -->
+          <div class="billing-plans" id="billing-plans">
+
+            <div class="billing-plan" id="billing-solo">
+              <div class="billing-plan__name">Solo</div>
+              <div class="billing-plan__price">£29<span style="font-size:0.9rem;font-weight:400;color:var(--text-3);">/mo</span></div>
+              <div class="billing-plan__quota">40 quotes/month</div>
+            </div>
+
+            <div class="billing-plan" id="billing-crew">
+              <div class="billing-plan__name">Crew</div>
+              <div class="billing-plan__price">£59<span style="font-size:0.9rem;font-weight:400;color:var(--text-3);">/mo</span></div>
+              <div class="billing-plan__quota">150 quotes/month</div>
+            </div>
+
+            <div class="billing-plan" id="billing-pro">
+              <div class="billing-plan__name">Pro</div>
+              <div class="billing-plan__price">£99<span style="font-size:0.9rem;font-weight:400;color:var(--text-3);">/mo</span></div>
+              <div class="billing-plan__quota">Unlimited quotes</div>
+            </div>
+
+          </div>
+
+          <div id="billing-actions" style="display:flex;gap:12px;flex-wrap:wrap;"></div>
+
+        </div>
+
+        <!-- ── Danger Zone ───────────────────────────────────────────────── -->
+        <div class="danger-zone">
+          <div class="danger-zone__title">Danger Zone</div>
+          <div class="danger-zone__sub">Once you delete your account all your quotes and data are permanently removed. This cannot be undone.</div>
+          <button class="btn" id="delete-account-btn" type="button"
+                  style="background:var(--red-dim);color:var(--red);border:1.5px solid rgba(220,38,38,0.3);">
+            Delete my account
+          </button>
+        </div>
+
+      </main>
+    </div>
+  </div>
+
+  <script type="module">
+    import { supabase }                                     from '/js/supabase.js';
+    import { requireAuth, getProfile, renderSidebar,
+             getPlanLabel, sanitize }                        from '/js/dashboard.js';
+    import { signOut }                                       from '/js/auth.js';
+    import { trackVisit }                                    from '/js/tracker.js';
+
+    trackVisit('/dashboard/settings');
+
+    // ── Dodo checkout links (replace with real product IDs) ───────────────
+    const DODO_LINKS = {
+      solo: 'https://checkout.dodopayments.com/buy/YOUR_SOLO_PRODUCT_ID',
+      crew: 'https://checkout.dodopayments.com/buy/YOUR_CREW_PRODUCT_ID',
+      pro:  'https://checkout.dodopayments.com/buy/YOUR_PRO_PRODUCT_ID',
+    };
+
+    // Default follow-up messages (fallback if none saved)
+    const DEFAULT_MESSAGES = {
+      day2:  `Hi {{name}}, just following up on the quote I sent for {{amount}}. Happy to answer any questions — just reply to this message. {{business}}`,
+      day5:  `Hi {{name}}, wanted to check in on the roofing quote for {{amount}}. If you're comparing a few options, I'm happy to talk through what's included. {{business}}`,
+      day10: `Hi {{name}}, still have availability for your job and the quote for {{amount}} still stands. Let me know either way — happy to help. {{business}}`,
+      day20: `Hi {{name}}, last follow-up on the quote for {{amount}}. If you've gone with someone else, no worries — but if you're still looking, I'd love to help. {{business}}`,
+    };
+
+    let currentProfile = null;
+
+    // ── Loading helpers ────────────────────────────────────────────────────
+    function setLoading(btnId, textId, spinnerId, on, idleText) {
+      document.getElementById(btnId).disabled = on;
+      document.getElementById(textId).textContent = on ? 'Saving…' : idleText;
+      document.getElementById(spinnerId).classList.toggle('visible', on);
+    }
+
+    function showAlert(id, msg) {
+      const el = document.getElementById(id);
+      el.textContent = msg;
+      el.classList.add('visible');
+      setTimeout(() => el.classList.remove('visible'), 4000);
+    }
+
+    // ── Populate profile form ─────────────────────────────────────────────
+    function populateProfile(profile) {
+      document.getElementById('business-name').value = profile.business_name || '';
+      document.getElementById('owner-name').value    = profile.owner_name    || '';
+      document.getElementById('trade').value         = profile.trade         || 'roofer';
+    }
+
+    // ── Populate follow-up messages ────────────────────────────────────────
+    function populateMessages(profile) {
+      let msgs = DEFAULT_MESSAGES;
+      try {
+        if (profile.default_followup_message) {
+          msgs = { ...DEFAULT_MESSAGES, ...JSON.parse(profile.default_followup_message) };
+        }
+      } catch (_) {}
+
+      document.getElementById('msg-day2').value  = msgs.day2  || DEFAULT_MESSAGES.day2;
+      document.getElementById('msg-day5').value  = msgs.day5  || DEFAULT_MESSAGES.day5;
+      document.getElementById('msg-day10').value = msgs.day10 || DEFAULT_MESSAGES.day10;
+      document.getElementById('msg-day20').value = msgs.day20 || DEFAULT_MESSAGES.day20;
+    }
+
+    // ── Render billing section ─────────────────────────────────────────────
+    function renderBilling(profile, userId) {
+      const label = getPlanLabel(profile);
+      document.getElementById('current-plan-name').textContent = label;
+
+      // Status line
+      let statusLine = '';
+      if (profile.subscription_status === 'trial') {
+        const daysLeft = Math.ceil(
+          (new Date(profile.trial_ends_at) - new Date()) / (1000 * 60 * 60 * 24)
+        );
+        statusLine = daysLeft > 0
+          ? `Trial ends in ${daysLeft} day${daysLeft !== 1 ? 's' : ''}`
+          : 'Trial expired';
+      } else if (profile.subscription_status === 'active') {
+        statusLine = 'Active subscription';
+      } else {
+        statusLine = 'No active subscription';
+      }
+      document.getElementById('current-plan-status').textContent = statusLine;
+
+      // Quota
+      const limit = profile.quote_limit || 0;
+      const used  = profile.quotes_used_this_month || 0;
+      document.getElementById('current-plan-quota').textContent =
+        limit > 0 ? `${used} / ${limit} quotes used this month` : 'No active plan';
+
+      // Highlight current plan card
+      const planMap = { solo: 'billing-solo', crew: 'billing-crew', pro: 'billing-pro' };
+      if (profile.subscription_status === 'active' && planMap[profile.plan]) {
+        document.getElementById(planMap[profile.plan])?.classList.add('billing-plan--current');
+      }
+
+      // Action buttons
+      const actionsEl = document.getElementById('billing-actions');
+      if (profile.subscription_status !== 'active') {
+        actionsEl.innerHTML = `
+          <a href="${DODO_LINKS.solo}?metadata[user_id]=${userId}" class="btn btn--primary">Upgrade to Solo — £29/mo</a>
+          <a href="${DODO_LINKS.crew}?metadata[user_id]=${userId}" class="btn btn--ghost">Crew — £59/mo</a>
+          <a href="${DODO_LINKS.pro}?metadata[user_id]=${userId}"  class="btn btn--ghost">Pro — £99/mo</a>
+        `;
+      } else {
+        actionsEl.innerHTML = `
+          <a href="mailto:hello@quotechase.io?subject=Manage%20subscription" class="btn btn--ghost">
+            Manage / Cancel subscription
+          </a>
+        `;
+      }
+    }
+
+    // ── Save profile ───────────────────────────────────────────────────────
+    async function saveProfile() {
+      setLoading('save-profile-btn', 'profile-btn-text', 'profile-spinner', true, 'Save changes');
+
+      const businessName = document.getElementById('business-name').value.trim();
+      const ownerName    = document.getElementById('owner-name').value.trim();
+      const trade        = document.getElementById('trade').value;
+
+      if (!businessName || !ownerName) {
+        showAlert('profile-error', 'Business name and your name are required.');
+        setLoading('save-profile-btn', 'profile-btn-text', 'profile-spinner', false, 'Save changes');
+        return;
+      }
+
+      const { error } = await supabase
+        .from('profiles')
+        .update({ business_name: businessName, owner_name: ownerName, trade })
+        .eq('id', currentProfile.id);
+
+      if (error) {
+        showAlert('profile-error', 'Failed to save. Please try again.');
+      } else {
+        currentProfile.business_name = businessName;
+        currentProfile.owner_name    = ownerName;
+        currentProfile.trade         = trade;
+        showAlert('profile-success', 'Profile saved.');
+      }
+      setLoading('save-profile-btn', 'profile-btn-text', 'profile-spinner', false, 'Save changes');
+    }
+
+    // ── Save messages ──────────────────────────────────────────────────────
+    async function saveMessages() {
+      setLoading('save-msgs-btn', 'msgs-btn-text', 'msgs-spinner', true, 'Save messages');
+
+      const msgs = {
+        day2:  document.getElementById('msg-day2').value.trim(),
+        day5:  document.getElementById('msg-day5').value.trim(),
+        day10: document.getElementById('msg-day10').value.trim(),
+        day20: document.getElementById('msg-day20').value.trim(),
+      };
+
+      const { error } = await supabase
+        .from('profiles')
+        .update({ default_followup_message: JSON.stringify(msgs) })
+        .eq('id', currentProfile.id);
+
+      if (error) {
+        showAlert('msgs-error', 'Failed to save messages. Please try again.');
+      } else {
+        showAlert('msgs-success', 'Follow-up messages saved.');
+      }
+      setLoading('save-msgs-btn', 'msgs-btn-text', 'msgs-spinner', false, 'Save messages');
+    }
+
+    // ── Delete account ─────────────────────────────────────────────────────
+    document.getElementById('delete-account-btn').addEventListener('click', async () => {
+      const confirmed = confirm(
+        'Are you sure you want to delete your account? All quotes and data will be permanently removed. This cannot be undone.'
+      );
+      if (!confirmed) return;
+
+      const doubleConfirm = confirm('Last chance — this is permanent. Delete account?');
+      if (!doubleConfirm) return;
+
+      // Delete quotes, then profile, then sign out
+      // Note: In production, wire this to a server-side function so auth user is also removed
+      await supabase.from('quotes').delete().eq('business_id', currentProfile.id);
+      await supabase.from('profiles').delete().eq('id', currentProfile.id);
+      await signOut();
+    });
+
+    // ── Button listeners ───────────────────────────────────────────────────
+    document.getElementById('save-profile-btn').addEventListener('click', saveProfile);
+    document.getElementById('save-msgs-btn').addEventListener('click', saveMessages);
+
+    // ── Init ───────────────────────────────────────────────────────────────
+    async function init() {
+      const session = await requireAuth();
+      const profile = await getProfile(session.user.id);
+
+      if (!profile) {
+        window.location.href = '/auth/login.html';
+        throw new Error('no profile');
+      }
+
+      currentProfile = profile;
+      renderSidebar(profile, 'settings');
+      // No paywall on settings — always accessible
+      populateProfile(profile);
+      populateMessages(profile);
+      renderBilling(profile, session.user.id);
+
+      // Scroll to billing if hash is #billing
+      if (window.location.hash === '#billing') {
+        setTimeout(() => {
+          document.getElementById('billing')?.scrollIntoView({ behavior: 'smooth' });
+        }, 200);
+      }
+    }
+
+    init().catch(err => {
+      if (err.message !== 'no session' && err.message !== 'no profile') console.error(err);
+    });
+  </script>
+</body>
+</html>

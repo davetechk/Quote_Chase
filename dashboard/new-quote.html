@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>New Quote — QuoteChase</title>
+  <link rel="stylesheet" href="/css/main.css" />
+  <link rel="stylesheet" href="/css/dashboard.css" />
+  <link rel="stylesheet" href="/css/paywall.css" />
+  <link rel="icon" href="/favicon.ico" />
+</head>
+<body>
+  <div class="dashboard-layout">
+
+    <div id="sidebar-container"></div>
+
+    <div class="dashboard-main">
+      <header class="dashboard-header">
+        <span class="dashboard-header__title">New Quote</span>
+        <a href="/dashboard/quotes.html" class="btn btn--ghost btn--sm">View all quotes</a>
+      </header>
+
+      <main class="dashboard-body">
+
+        <div class="page-title">Send a new quote</div>
+        <p class="page-sub">Enter the job details below. QuoteChase will send the quote and follow up automatically.</p>
+
+        <!-- Quota warning -->
+        <div class="alert alert--info"    id="quota-warn"   style="max-width:640px;"></div>
+        <div class="alert alert--error"   id="error-msg"    style="max-width:640px;"></div>
+        <div class="alert alert--success" id="success-msg"  style="max-width:640px;"></div>
+
+        <form class="dash-form" id="quote-form" novalidate>
+
+          <div class="dash-form-grid">
+
+            <div class="form-group">
+              <label class="form-label" for="customer-name">Customer name <span style="color:var(--red)">*</span></label>
+              <input class="form-input" type="text" id="customer-name"
+                     placeholder="John Smith" required />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="quote-amount">Quote amount (£) <span style="color:var(--red)">*</span></label>
+              <input class="form-input" type="number" id="quote-amount"
+                     placeholder="4500" min="1" step="any" required />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="customer-email">Customer email <span style="color:var(--red)">*</span></label>
+              <input class="form-input" type="email" id="customer-email"
+                     placeholder="john@example.com" required />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="customer-phone">
+                Customer phone
+                <span class="text-xs text-muted" style="font-weight:400;">(optional — for SMS)</span>
+              </label>
+              <input class="form-input" type="tel" id="customer-phone"
+                     placeholder="+44 7700 900000" />
+            </div>
+
+            <div class="form-group span-2">
+              <label class="form-label" for="job-description">Job description <span style="color:var(--red)">*</span></label>
+              <textarea class="form-input" id="job-description" rows="4"
+                        placeholder="e.g. Full re-roof, 3-bed semi-detached, strip and replace with concrete tiles, include ridge and hip tiles, new felt and battens."
+                        style="resize:vertical;"></textarea>
+            </div>
+
+          </div>
+
+          <!-- Preview of what the customer will receive -->
+          <div class="quote-preview" id="quote-preview" style="display:none;">
+            <div class="quote-preview__label">Quote preview</div>
+            <div class="quote-preview__box">
+              <div class="quote-preview__header">
+                <strong id="preview-business">Your Business</strong>
+                <span id="preview-amount" style="color:var(--orange);font-weight:800;"></span>
+              </div>
+              <p id="preview-job" style="font-size:0.875rem;color:var(--text-2);margin:0;"></p>
+            </div>
+          </div>
+
+          <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:28px;">
+            <button class="btn btn--primary" id="submit-btn" type="button">
+              <span id="btn-text">Send quote &amp; start follow-ups</span>
+              <span class="spinner" id="spinner"></span>
+            </button>
+            <a href="/dashboard/index.html" class="btn btn--ghost">Cancel</a>
+          </div>
+
+          <p class="text-xs text-muted mt-16">
+            Follow-ups will be sent automatically on day 2, 5, 10, and 20 until the customer replies.
+          </p>
+
+        </form>
+
+      </main>
+    </div>
+  </div>
+
+  <style>
+    .quote-preview { margin-top: 24px; }
+    .quote-preview__label {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--text-3);
+      margin-bottom: 10px;
+    }
+    .quote-preview__box {
+      background: var(--bg-3);
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .quote-preview__header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      font-size: 0.9rem;
+      color: var(--text);
+    }
+  </style>
+
+  <script type="module">
+    import { supabase }                                          from '/js/supabase.js';
+    import { requireAuth, getProfile, renderSidebar,
+             hasAccess, showPaywall, sanitize }                  from '/js/dashboard.js';
+    import { trackVisit }                                        from '/js/tracker.js';
+
+    trackVisit('/dashboard/new-quote');
+
+    const EDGE_URL = `${window.__SUPABASE_URL__ || ''}/functions/v1/send-message`;
+
+    // Read supabase URL from the client (it's set in supabase.js)
+    // We'll derive it from the Supabase client instead
+    async function getEdgeUrl() {
+      // Import the raw URL — easier to just hardcode base path pattern
+      // The Edge Function URL is: https://<project-ref>.supabase.co/functions/v1/send-message
+      // We pull it from the Supabase client's REST URL
+      const { data } = await supabase.auth.getSession();
+      return data; // just a warmup; URL is configured below
+    }
+
+    const customerNameInput  = document.getElementById('customer-name');
+    const quoteAmountInput   = document.getElementById('quote-amount');
+    const customerEmailInput = document.getElementById('customer-email');
+    const customerPhoneInput = document.getElementById('customer-phone');
+    const jobDescInput       = document.getElementById('job-description');
+    const submitBtn          = document.getElementById('submit-btn');
+    const btnText            = document.getElementById('btn-text');
+    const spinner            = document.getElementById('spinner');
+    const errorMsg           = document.getElementById('error-msg');
+    const successMsg         = document.getElementById('success-msg');
+    const quotaWarn          = document.getElementById('quota-warn');
+    const quotePreview       = document.getElementById('quote-preview');
+
+    let currentProfile = null;
+
+    function setLoading(on) {
+      submitBtn.disabled = on;
+      btnText.textContent = on ? 'Sending…' : 'Send quote & start follow-ups';
+      spinner.classList.toggle('visible', on);
+    }
+
+    function showError(msg) {
+      errorMsg.textContent = msg;
+      errorMsg.classList.add('visible');
+      successMsg.classList.remove('visible');
+    }
+
+    function clearMessages() {
+      errorMsg.classList.remove('visible');
+      successMsg.classList.remove('visible');
+    }
+
+    // Live preview
+    function updatePreview() {
+      const name   = customerNameInput.value.trim();
+      const amount = quoteAmountInput.value.trim();
+      const job    = jobDescInput.value.trim();
+
+      if (!name && !amount && !job) {
+        quotePreview.style.display = 'none';
+        return;
+      }
+      quotePreview.style.display = 'block';
+      document.getElementById('preview-business').textContent =
+        currentProfile?.business_name || 'Your Business';
+      document.getElementById('preview-amount').textContent =
+        amount ? '£' + Number(amount).toLocaleString('en-GB') : '';
+      document.getElementById('preview-job').textContent = job || '—';
+    }
+
+    [customerNameInput, quoteAmountInput, jobDescInput].forEach(el =>
+      el.addEventListener('input', updatePreview)
+    );
+
+    // Validate UK/international phone loosely
+    function cleanPhone(raw) {
+      if (!raw) return null;
+      const digits = raw.replace(/\s+/g, '');
+      if (digits.startsWith('07')) return '+44' + digits.slice(1);
+      return digits;
+    }
+
+    async function handleSubmit() {
+      clearMessages();
+
+      const customerName  = customerNameInput.value.trim();
+      const quoteAmount   = quoteAmountInput.value.trim();
+      const customerEmail = customerEmailInput.value.trim();
+      const customerPhone = cleanPhone(customerPhoneInput.value.trim());
+      const jobDesc       = jobDescInput.value.trim();
+
+      // Validation
+      if (!customerName || !quoteAmount || !customerEmail || !jobDesc) {
+        showError('Please fill in all required fields.');
+        return;
+      }
+      if (isNaN(Number(quoteAmount)) || Number(quoteAmount) <= 0) {
+        showError('Please enter a valid quote amount.');
+        return;
+      }
+
+      // Quota check
+      const limit = currentProfile.quote_limit || 0;
+      const used  = currentProfile.quotes_used_this_month || 0;
+      if (limit > 0 && used >= limit) {
+        showError(`You've reached your ${limit} quote limit for this month. Upgrade your plan to send more.`);
+        return;
+      }
+
+      setLoading(true);
+
+      try {
+        // 1. Insert quote into DB
+        const { data: quoteData, error: insertError } = await supabase
+          .from('quotes')
+          .insert({
+            business_id:     currentProfile.id,
+            customer_name:   customerName,
+            customer_email:  customerEmail,
+            customer_phone:  customerPhone,
+            job_description: jobDesc,
+            quote_amount:    Number(quoteAmount),
+            status:          'sent',
+          })
+          .select()
+          .single();
+
+        if (insertError) throw insertError;
+
+        // 2. Increment monthly usage counter
+        await supabase
+          .from('profiles')
+          .update({ quotes_used_this_month: used + 1 })
+          .eq('id', currentProfile.id);
+
+        // 3. Trigger send-message Edge Function (ONE fetch, no duplicate)
+        const { data: sessionData } = await supabase.auth.getSession();
+        const token = sessionData?.session?.access_token;
+
+        const res = await fetch(
+          `${supabase.supabaseUrl}/functions/v1/send-message`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type':  'application/json',
+              'Authorization': `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              type:     'quote',
+              quoteId:  quoteData.id,
+              profile:  {
+                business_name: currentProfile.business_name,
+                owner_name:    currentProfile.owner_name,
+              },
+              customer: {
+                name:  customerName,
+                email: customerEmail,
+                phone: customerPhone,
+              },
+              job:         jobDesc,
+              quoteAmount: Number(quoteAmount),
+            }),
+          }
+        );
+
+        const result = await res.json();
+        if (!res.ok) throw new Error(result.error || 'Failed to send quote.');
+
+        // 4. Success — clear form and show confirmation
+        successMsg.textContent = `Quote sent to ${customerName}! Follow-ups will start automatically.`;
+        successMsg.classList.add('visible');
+
+        customerNameInput.value  = '';
+        quoteAmountInput.value   = '';
+        customerEmailInput.value = '';
+        customerPhoneInput.value = '';
+        jobDescInput.value       = '';
+        quotePreview.style.display = 'none';
+
+        // Redirect to all quotes after 2s
+        setTimeout(() => {
+          window.location.href = '/dashboard/quotes.html';
+        }, 2000);
+
+      } catch (err) {
+        showError(err.message || 'Something went wrong. Please try again.');
+        setLoading(false);
+      }
+    }
+
+    submitBtn.addEventListener('click', handleSubmit);
+
+    // ── Init ─────────────────────────────────────────────────────────────────
+    async function init() {
+      const session = await requireAuth();
+      const profile = await getProfile(session.user.id);
+
+      if (!profile) {
+        window.location.href = '/auth/login.html';
+        throw new Error('no profile');
+      }
+
+      currentProfile = profile;
+      renderSidebar(profile, 'new-quote');
+
+      if (!hasAccess(profile)) {
+        showPaywall();
+        return;
+      }
+
+      // Quota warning (soft warning at 80%)
+      const limit = profile.quote_limit || 0;
+      const used  = profile.quotes_used_this_month || 0;
+      if (limit > 0) {
+        const pct = used / limit;
+        if (pct >= 0.8) {
+          quotaWarn.textContent = `You've used ${used} of ${limit} quotes this month. Upgrade soon to avoid hitting your limit.`;
+          quotaWarn.classList.add('visible');
+        }
+      }
+    }
+
+    init().catch(err => {
+      if (err.message !== 'no session' && err.message !== 'no profile') console.error(err);
+    });
+  </script>
+</body>
+</html>

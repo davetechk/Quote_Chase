@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sign In — QuoteChase</title>
+  <link rel="stylesheet" href="/css/main.css" />
+  <link rel="icon" href="/favicon.ico" />
+</head>
+<body>
+  <div class="auth-page">
+    <div class="auth-card fade-up">
+
+      <div class="auth-card__logo">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 50" width="140" height="44">
+          <g transform="translate(4,7)">
+            <circle cx="18" cy="18" r="14" fill="none" stroke="#6B7280" stroke-width="3.5"/>
+            <path d="M12 23 L32 3 M32 3 L22 3 M32 3 L32 13" stroke="#FF7A00" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+          </g>
+          <text x="52" y="32" font-family="'DM Sans', sans-serif" font-size="20" font-weight="800" fill="#F8F9FA" letter-spacing="-0.5">Quote<tspan fill="#FF7A00" font-weight="400">Chase</tspan></text>
+        </svg>
+      </div>
+
+      <h1 class="auth-card__title">Welcome back</h1>
+      <p class="auth-card__sub">Sign in to your QuoteChase account</p>
+
+      <div class="alert alert--error" id="error-msg" role="alert"></div>
+
+      <div class="form-group">
+        <label class="form-label" for="email">Email address</label>
+        <input class="form-input" type="email" id="email" name="email"
+               placeholder="you@yourbusiness.co.uk" autocomplete="email" required />
+      </div>
+
+      <div class="form-group">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+          <label class="form-label" for="password" style="margin-bottom:0;">Password</label>
+          <a href="/auth/forgot-password.html" class="text-xs text-orange">Forgot password?</a>
+        </div>
+        <input class="form-input" type="password" id="password" name="password"
+               placeholder="••••••••" autocomplete="current-password" required />
+      </div>
+
+      <button class="btn btn--primary w-full mt-8" id="login-btn" type="button">
+        <span id="btn-text">Sign in</span>
+        <span class="spinner" id="spinner"></span>
+      </button>
+
+      <div class="auth-card__footer">
+        Don't have an account? <a href="/auth/signup.html">Start free trial</a>
+      </div>
+
+    </div>
+  </div>
+
+  <script type="module">
+    import { signIn, getSession } from '/js/auth.js';
+    import { trackVisit } from '/js/tracker.js';
+
+    trackVisit('/auth/login');
+
+    // Redirect if already logged in
+    getSession().then(session => {
+      if (session) window.location.href = '/dashboard/index.html';
+    }).catch(() => {});
+
+    const emailInput    = document.getElementById('email');
+    const passwordInput = document.getElementById('password');
+    const loginBtn      = document.getElementById('login-btn');
+    const btnText       = document.getElementById('btn-text');
+    const spinner       = document.getElementById('spinner');
+    const errorMsg      = document.getElementById('error-msg');
+
+    function setLoading(on) {
+      loginBtn.disabled = on;
+      btnText.textContent = on ? 'Signing in…' : 'Sign in';
+      spinner.classList.toggle('visible', on);
+    }
+
+    function showError(msg) {
+      errorMsg.textContent = msg;
+      errorMsg.classList.add('visible');
+    }
+
+    function clearError() {
+      errorMsg.classList.remove('visible');
+    }
+
+    async function handleLogin() {
+      clearError();
+      const email    = emailInput.value.trim();
+      const password = passwordInput.value;
+
+      if (!email || !password) {
+        showError('Please enter your email and password.');
+        return;
+      }
+
+      setLoading(true);
+      try {
+        await signIn(email, password);
+        window.location.href = '/dashboard/index.html';
+      } catch (err) {
+        const msg = err.message || '';
+        if (msg.toLowerCase().includes('invalid login')) {
+          showError('Incorrect email or password. Please try again.');
+        } else if (msg.toLowerCase().includes('email not confirmed')) {
+          showError('Please confirm your email address first. Check your inbox.');
+        } else {
+          showError(msg || 'Something went wrong. Please try again.');
+        }
+        setLoading(false);
+      }
+    }
+
+    loginBtn.addEventListener('click', handleLogin);
+
+    // Allow Enter key
+    [emailInput, passwordInput].forEach(el => {
+      el.addEventListener('keydown', e => { if (e.key === 'Enter') handleLogin(); });
+    });
+  </script>
+</body>
+</html>

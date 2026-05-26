@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>All Quotes — QuoteChase</title>
+  <link rel="stylesheet" href="/css/main.css" />
+  <link rel="stylesheet" href="/css/dashboard.css" />
+  <link rel="stylesheet" href="/css/paywall.css" />
+  <link rel="icon" href="/favicon.ico" />
+  <style>
+    .quote-amount-col { font-weight: 700; color: var(--text); white-space: nowrap; }
+    .followup-progress {
+      display: flex;
+      gap: 4px;
+      align-items: center;
+    }
+    .fp-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--border-light);
+      transition: background 0.2s;
+    }
+    .fp-dot--done { background: var(--orange); }
+    .fp-dot--pending { background: var(--border); }
+    .fp-label {
+      font-size: 0.7rem;
+      color: var(--text-3);
+      margin-left: 4px;
+    }
+  </style>
+</head>
+<body>
+  <div class="dashboard-layout">
+
+    <div id="sidebar-container"></div>
+
+    <div class="dashboard-main">
+      <header class="dashboard-header">
+        <span class="dashboard-header__title">All Quotes</span>
+        <a href="/dashboard/new-quote.html" class="btn btn--primary btn--sm">+ New Quote</a>
+      </header>
+
+      <main class="dashboard-body">
+
+        <div class="page-title">Your Quotes</div>
+        <p class="page-sub">Mark jobs won, lost, or replied when a customer gets back to you.</p>
+
+        <div class="alert alert--error"   id="error-msg"></div>
+        <div class="alert alert--success" id="success-msg"></div>
+
+        <!-- Filter bar -->
+        <div class="filter-bar">
+          <input type="text"   id="search-input"  placeholder="Search by customer or job…" />
+          <select id="status-filter">
+            <option value="">All statuses</option>
+            <option value="sent">Sent</option>
+            <option value="followup">Following Up</option>
+            <option value="won">Won</option>
+            <option value="lost">Lost</option>
+          </select>
+        </div>
+
+        <!-- Quotes table -->
+        <div class="table-wrap">
+          <div class="table-header">
+            <span class="table-title" id="table-count">All Quotes</span>
+          </div>
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Customer</th>
+                  <th>Job</th>
+                  <th>Amount</th>
+                  <th>Follow-ups</th>
+                  <th>Status</th>
+                  <th>Sent</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="quotes-tbody">
+                <tr><td colspan="7" class="table-empty">Loading…</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- Quote detail modal -->
+  <div class="modal-backdrop" id="detail-modal">
+    <div class="modal">
+      <div class="modal__header">
+        <h2 class="modal__title" id="modal-customer-name">Quote Details</h2>
+        <button class="modal__close" id="modal-close" aria-label="Close">✕</button>
+      </div>
+      <div id="modal-body"></div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { supabase }                                          from '/js/supabase.js';
+    import { requireAuth, getProfile, renderSidebar,
+             hasAccess, showPaywall, sanitize }                  from '/js/dashboard.js';
+    import { trackVisit }                                        from '/js/tracker.js';
+
+    trackVisit('/dashboard/quotes');
+
+    let allQuotes      = [];
+    let currentProfile = null;
+
+    // ── Helpers ───────────────────────────────────────────────────────────────
+    function statusBadge(status) {
+      const map = {
+        sent:     '<span class="badge badge--sent">Sent</span>',
+        followup: '<span class="badge badge--followup">Following Up</span>',
+        won:      '<span class="badge badge--won">Won ✓</span>',
+        lost:     '<span class="badge badge--lost">Lost</span>',
+      };
+      return map[status] || `<span class="badge badge--sent">${sanitize(status)}</span>`;
+    }
+
+    function formatGBP(n) {
+      return '£' + Number(n).toLocaleString('en-GB', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+    }
+
+    function formatDate(iso) {
+      return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: '2-digit' });
+    }
+
+    // Dots showing which follow-ups have fired
+    function followupDots(q) {
+      const checks = [
+        { flag: q.followup_2_sent,  label: 'D2'  },
+        { flag: q.followup_5_sent,  label: 'D5'  },
+        { flag: q.followup_10_sent, label: 'D10' },
+        { flag: q.followup_20_sent, label: 'D20' },
+      ];
+      const dots = checks.map(c =>
+        `<span class="fp-dot${c.flag ? ' fp-dot--done' : ' fp-dot--pending'}" title="${c.label}"></span>`
+      ).join('');
+      const sent = checks.filter(c => c.flag).length;
+      return `<div class="followup-progress">${dots}<span class="fp-label">${sent}/4</span></div>`;
+    }
+
+    // ── Update status ─────────────────────────────────────────────────────────
+    async function updateStatus(quoteId, newStatus) {
+      const updates = { status: newStatus };
+      if (newStatus === 'won' || newStatus === 'lost') {
+        updates.customer_replied = true;
+      }
+      const { error } = await supabase
+        .from('quotes')
+        .update(updates)
+        .eq('id', quoteId);
+
+      if (error) {
+        document.getElementById('error-msg').textContent = 'Failed to update. Please try again.';
+        document.getElementById('error-msg').classList.add('visible');
+        return;
+      }
+
+      document.getElementById('success-msg').textContent =
+        `Quote marked as ${newStatus}.`;
+      document.getElementById('success-msg').classList.add('visible');
+      setTimeout(() => document.getElementById('success-msg').classList.remove('visible'), 3000);
+
+      await loadQuotes();
+    }
+
+    // ── Render table ──────────────────────────────────────────────────────────
+    function renderTable(quotes) {
+      const tbody = document.getElementById('quotes-tbody');
+      document.getElementById('table-count').textContent =
+        `${quotes.length} Quote${quotes.length !== 1 ? 's' : ''}`;
+
+      if (!quotes.length) {
+        tbody.innerHTML = `<tr><td colspan="7" class="table-empty">No quotes found.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = quotes.map(q => {
+        const canAct = q.status !== 'won' && q.status !== 'lost';
+        const actions = canAct ? `
+          <div style="display:flex;gap:5px;flex-wrap:wrap;">
+            <button class="action-btn action-btn--won"  onclick="window.__updateStatus('${q.id}','won')">Won</button>
+            <button class="action-btn action-btn--lost" onclick="window.__updateStatus('${q.id}','lost')">Lost</button>
+            <button class="action-btn action-btn--reply" onclick="window.__updateStatus('${q.id}','followup')">Replied</button>
+          </div>` : '<span class="text-muted text-xs">Closed</span>';
+
+        return `
+          <tr style="cursor:pointer;" onclick="window.__openModal('${q.id}')">
+            <td>${sanitize(q.customer_name)}</td>
+            <td style="max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${sanitize(q.job_description)}</td>
+            <td class="quote-amount-col">${formatGBP(q.quote_amount)}</td>
+            <td onclick="event.stopPropagation()">${followupDots(q)}</td>
+            <td>${statusBadge(q.status)}</td>
+            <td style="color:var(--text-3);white-space:nowrap;">${formatDate(q.created_at)}</td>
+            <td onclick="event.stopPropagation()">${actions}</td>
+          </tr>`;
+      }).join('');
+    }
+
+    // ── Filter logic ──────────────────────────────────────────────────────────
+    function applyFilters() {
+      const search = document.getElementById('search-input').value.toLowerCase();
+      const status = document.getElementById('status-filter').value;
+
+      const filtered = allQuotes.filter(q => {
+        const matchSearch =
+          !search ||
+          q.customer_name.toLowerCase().includes(search) ||
+          (q.job_description || '').toLowerCase().includes(search);
+        const matchStatus = !status || q.status === status;
+        return matchSearch && matchStatus;
+      });
+
+      renderTable(filtered);
+    }
+
+    document.getElementById('search-input').addEventListener('input', applyFilters);
+    document.getElementById('status-filter').addEventListener('change', applyFilters);
+
+    // ── Modal ─────────────────────────────────────────────────────────────────
+    function openModal(quoteId) {
+      const q = allQuotes.find(x => x.id === quoteId);
+      if (!q) return;
+
+      document.getElementById('modal-customer-name').textContent = sanitize(q.customer_name);
+
+      const followupRows = [
+        { day: 2,  sent: q.followup_2_sent  },
+        { day: 5,  sent: q.followup_5_sent  },
+        { day: 10, sent: q.followup_10_sent },
+        { day: 20, sent: q.followup_20_sent },
+      ].map(f => `
+        <div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--border);">
+          <span style="font-size:0.8rem;color:${f.sent ? 'var(--green)' : 'var(--text-3)'};">
+            ${f.sent ? '✓' : '○'}
+          </span>
+          <span style="font-size:0.875rem;color:${f.sent ? 'var(--text)' : 'var(--text-3)'};">
+            Day ${f.day} follow-up ${f.sent ? 'sent' : '(pending)'}
+          </span>
+        </div>`).join('');
+
+      document.getElementById('modal-body').innerHTML = `
+        <div style="display:flex;flex-direction:column;gap:20px;">
+
+          <div>
+            <div class="text-xs text-muted mb-4" style="text-transform:uppercase;letter-spacing:.06em;font-weight:700;">Status</div>
+            ${statusBadge(q.status)}
+          </div>
+
+          <div>
+            <div class="text-xs text-muted mb-4" style="text-transform:uppercase;letter-spacing:.06em;font-weight:700;">Quote Amount</div>
+            <div style="font-size:1.6rem;font-weight:800;color:var(--orange);">${sanitize(String(formatGBP(q.quote_amount)))}</div>
+          </div>
+
+          <div>
+            <div class="text-xs text-muted mb-4" style="text-transform:uppercase;letter-spacing:.06em;font-weight:700;">Job Description</div>
+            <p style="font-size:0.9rem;color:var(--text-2);line-height:1.6;margin:0;">${sanitize(q.job_description)}</p>
+          </div>
+
+          <div>
+            <div class="text-xs text-muted mb-4" style="text-transform:uppercase;letter-spacing:.06em;font-weight:700;">Contact</div>
+            <div style="font-size:0.875rem;color:var(--text-2);">${sanitize(q.customer_email)}</div>
+            ${q.customer_phone ? `<div style="font-size:0.875rem;color:var(--text-3);margin-top:4px;">${sanitize(q.customer_phone)}</div>` : ''}
+          </div>
+
+          <div>
+            <div class="text-xs text-muted mb-8" style="text-transform:uppercase;letter-spacing:.06em;font-weight:700;">Follow-up Progress</div>
+            ${followupRows}
+          </div>
+
+          <div style="font-size:0.775rem;color:var(--text-3);">
+            Sent on ${formatDate(q.created_at)}
+          </div>
+
+          ${q.status !== 'won' && q.status !== 'lost' ? `
+          <div style="display:flex;gap:8px;flex-wrap:wrap;padding-top:8px;border-top:1px solid var(--border);">
+            <button class="action-btn action-btn--won"  onclick="window.__updateStatus('${q.id}','won');closeModal();">Mark Won</button>
+            <button class="action-btn action-btn--lost" onclick="window.__updateStatus('${q.id}','lost');closeModal();">Mark Lost</button>
+            <button class="action-btn action-btn--reply" onclick="window.__updateStatus('${q.id}','followup');closeModal();">Mark Replied</button>
+          </div>` : ''}
+
+        </div>`;
+
+      document.getElementById('detail-modal').classList.add('visible');
+    }
+
+    function closeModal() {
+      document.getElementById('detail-modal').classList.remove('visible');
+    }
+
+    document.getElementById('modal-close').addEventListener('click', closeModal);
+    document.getElementById('detail-modal').addEventListener('click', e => {
+      if (e.target === document.getElementById('detail-modal')) closeModal();
+    });
+
+    // ── Load quotes ───────────────────────────────────────────────────────────
+    async function loadQuotes() {
+      const { data, error } = await supabase
+        .from('quotes')
+        .select('*')
+        .eq('business_id', currentProfile.id)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        document.getElementById('error-msg').textContent = 'Failed to load quotes.';
+        document.getElementById('error-msg').classList.add('visible');
+        return;
+      }
+
+      allQuotes = data || [];
+      applyFilters();
+    }
+
+    // ── Init ──────────────────────────────────────────────────────────────────
+    async function init() {
+      const session = await requireAuth();
+      const profile = await getProfile(session.user.id);
+
+      if (!profile) {
+        window.location.href = '/auth/login.html';
+        throw new Error('no profile');
+      }
+
+      currentProfile = profile;
+      renderSidebar(profile, 'quotes');
+
+      if (!hasAccess(profile)) {
+        showPaywall();
+        return;
+      }
+
+      await loadQuotes();
+    }
+
+    window.__updateStatus = (id, status) => updateStatus(id, status);
+    window.__openModal    = (id) => openModal(id);
+    window.closeModal     = closeModal;
+
+    init().catch(err => {
+      if (err.message !== 'no session' && err.message !== 'no profile') console.error(err);
+    });
+  </script>
+</body>
+</html>

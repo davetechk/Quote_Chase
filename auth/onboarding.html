@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Choose Your Plan — QuoteChase</title>
+  <link rel="stylesheet" href="/css/main.css" />
+  <link rel="icon" href="/favicon.ico" />
+  <style>
+    .onboarding-page {
+      min-height: 100vh;
+      padding: 48px 24px 80px;
+    }
+    .onboarding-header {
+      text-align: center;
+      margin-bottom: 56px;
+    }
+    .onboarding-header__logo { margin: 0 auto 32px; }
+    .onboarding-header__step {
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--orange);
+      margin-bottom: 12px;
+    }
+    .onboarding-header h1 { margin-bottom: 12px; }
+    .onboarding-header p  { max-width: 480px; margin: 0 auto; }
+
+    .trial-note {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--green-dim);
+      border: 1px solid rgba(22,163,74,0.3);
+      border-radius: 100px;
+      padding: 6px 16px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #86efac;
+      margin-bottom: 40px;
+    }
+    .trial-note::before { content: '✓'; }
+
+    .plans-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+      max-width: 900px;
+      margin: 0 auto 32px;
+    }
+    @media (max-width: 860px) {
+      .plans-grid { grid-template-columns: 1fr; max-width: 440px; }
+    }
+
+    .plan-card {
+      background: var(--bg-2);
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 36px 28px;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      transition: border-color var(--transition), transform var(--transition);
+      cursor: pointer;
+    }
+    .plan-card:hover {
+      border-color: var(--border-light);
+      transform: translateY(-2px);
+    }
+    .plan-card--featured {
+      border-color: var(--orange);
+      background: linear-gradient(160deg, var(--bg-2), rgba(255,122,0,0.05));
+    }
+    .plan-card__badge {
+      position: absolute;
+      top: -13px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--orange);
+      color: #fff;
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 4px 14px;
+      border-radius: 100px;
+      white-space: nowrap;
+    }
+    .plan-card__name {
+      font-size: 0.8rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-3);
+      margin-bottom: 12px;
+    }
+    .plan-card__price {
+      display: flex;
+      align-items: flex-end;
+      gap: 2px;
+      margin-bottom: 4px;
+    }
+    .plan-card__currency { font-size: 1.3rem; font-weight: 700; color: var(--text-2); padding-bottom: 5px; }
+    .plan-card__amount   { font-size: 2.8rem; font-weight: 800; color: var(--text); line-height: 1; letter-spacing: -0.03em; }
+    .plan-card__period   { font-size: 0.8rem; color: var(--text-3); padding-bottom: 6px; }
+    .plan-card__quota    { font-size: 0.825rem; color: var(--text-3); margin-bottom: 24px; }
+
+    .plan-card__features {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 9px;
+      margin-bottom: 28px;
+      flex: 1;
+    }
+    .plan-card__features li {
+      display: flex;
+      align-items: flex-start;
+      gap: 9px;
+      font-size: 0.875rem;
+      color: var(--text-2);
+    }
+    .plan-card__features li::before {
+      content: '✓';
+      color: var(--green);
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    .plan-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 13px 20px;
+      border-radius: var(--radius);
+      font-size: 0.925rem;
+      font-weight: 700;
+      transition: background var(--transition), transform var(--transition), box-shadow var(--transition);
+      border: 1.5px solid transparent;
+      width: 100%;
+    }
+    .plan-btn--primary {
+      background: var(--orange);
+      color: #fff;
+    }
+    .plan-btn--primary:hover {
+      background: var(--orange-hover);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 16px var(--orange-glow);
+    }
+    .plan-btn--ghost {
+      background: transparent;
+      color: var(--text-2);
+      border-color: var(--border);
+    }
+    .plan-btn--ghost:hover {
+      border-color: var(--border-light);
+      color: var(--text);
+    }
+
+    .onboarding-skip {
+      text-align: center;
+      font-size: 0.875rem;
+      color: var(--text-3);
+    }
+    .onboarding-skip a {
+      color: var(--text-3);
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+    .onboarding-skip a:hover { color: var(--text-2); }
+
+    .alert { margin: 0 auto 24px; max-width: 900px; }
+  </style>
+</head>
+<body>
+  <div class="onboarding-page">
+    <div class="onboarding-header">
+      <div class="onboarding-header__logo">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 50" width="140" height="44" style="margin:0 auto;">
+          <g transform="translate(4,7)">
+            <circle cx="18" cy="18" r="14" fill="none" stroke="#6B7280" stroke-width="3.5"/>
+            <path d="M12 23 L32 3 M32 3 L22 3 M32 3 L32 13" stroke="#FF7A00" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+          </g>
+          <text x="52" y="32" font-family="'DM Sans', sans-serif" font-size="20" font-weight="800" fill="#F8F9FA" letter-spacing="-0.5">Quote<tspan fill="#FF7A00" font-weight="400">Chase</tspan></text>
+        </svg>
+      </div>
+      <div class="onboarding-header__step">Step 2 of 2</div>
+      <h1>Pick your plan</h1>
+      <p style="color:var(--text-3);margin-bottom:20px;">Your 14-day free trial starts today — no card charged until it ends.</p>
+      <div class="trial-note">14-day free trial on all plans. Cancel anytime.</div>
+    </div>
+
+    <div class="alert alert--error" id="error-msg" role="alert"></div>
+
+    <div class="plans-grid">
+
+      <!-- Solo -->
+      <div class="plan-card" id="plan-solo">
+        <div class="plan-card__name">Solo</div>
+        <div class="plan-card__price">
+          <span class="plan-card__currency">£</span>
+          <span class="plan-card__amount">29</span>
+          <span class="plan-card__period">/mo</span>
+        </div>
+        <div class="plan-card__quota">40 quotes per month</div>
+        <ul class="plan-card__features">
+          <li>Automated follow-ups on day 2, 5, 10 &amp; 20</li>
+          <li>Email + SMS notifications</li>
+          <li>Quote status dashboard</li>
+          <li>Won / Lost tracking</li>
+        </ul>
+        <a href="#" class="plan-btn plan-btn--ghost" id="btn-solo">Start free trial</a>
+      </div>
+
+      <!-- Crew (featured) -->
+      <div class="plan-card plan-card--featured" id="plan-crew">
+        <div class="plan-card__badge">Most Popular</div>
+        <div class="plan-card__name">Crew</div>
+        <div class="plan-card__price">
+          <span class="plan-card__currency">£</span>
+          <span class="plan-card__amount">59</span>
+          <span class="plan-card__period">/mo</span>
+        </div>
+        <div class="plan-card__quota">150 quotes per month</div>
+        <ul class="plan-card__features">
+          <li>Everything in Solo</li>
+          <li>Up to 10 team members</li>
+          <li>Priority email support</li>
+          <li>Custom follow-up messages</li>
+        </ul>
+        <a href="#" class="plan-btn plan-btn--primary" id="btn-crew">Start free trial</a>
+      </div>
+
+      <!-- Pro -->
+      <div class="plan-card" id="plan-pro">
+        <div class="plan-card__name">Pro</div>
+        <div class="plan-card__price">
+          <span class="plan-card__currency">£</span>
+          <span class="plan-card__amount">99</span>
+          <span class="plan-card__period">/mo</span>
+        </div>
+        <div class="plan-card__quota">Unlimited quotes</div>
+        <ul class="plan-card__features">
+          <li>Everything in Crew</li>
+          <li>Unlimited quotes &amp; team members</li>
+          <li>Priority phone support</li>
+          <li>Early access to new features</li>
+        </ul>
+        <a href="#" class="plan-btn plan-btn--ghost" id="btn-pro">Start free trial</a>
+      </div>
+
+    </div>
+
+    <p class="onboarding-skip">
+      Not ready to pick yet? <a href="/dashboard/index.html" id="skip-link">Continue with free trial →</a>
+    </p>
+  </div>
+
+  <script type="module">
+    import { getSession } from '/js/auth.js';
+    import { trackVisit } from '/js/tracker.js';
+
+    trackVisit('/auth/onboarding');
+
+    // ── Dodo Payments checkout URLs ─────────────────────────────────────────
+    // Replace these with your actual Dodo product checkout links
+    const DODO_LINKS = {
+      solo: 'https://checkout.dodopayments.com/buy/YOUR_SOLO_PRODUCT_ID',
+      crew: 'https://checkout.dodopayments.com/buy/YOUR_CREW_PRODUCT_ID',
+      pro:  'https://checkout.dodopayments.com/buy/YOUR_PRO_PRODUCT_ID',
+    };
+
+    const errorMsg = document.getElementById('error-msg');
+
+    async function init() {
+      try {
+        const session = await getSession();
+        if (!session) {
+          window.location.href = '/auth/login.html';
+          throw new Error('no session');
+        }
+
+        const userId = session.user.id;
+
+        // Wire up plan buttons — append user ID so Dodo can attach the subscription
+        document.getElementById('btn-solo').href = `${DODO_LINKS.solo}?metadata[user_id]=${userId}`;
+        document.getElementById('btn-crew').href = `${DODO_LINKS.crew}?metadata[user_id]=${userId}`;
+        document.getElementById('btn-pro').href  = `${DODO_LINKS.pro}?metadata[user_id]=${userId}`;
+
+      } catch (err) {
+        if (err.message === 'no session') return;
+        errorMsg.textContent = 'Something went wrong. Please refresh.';
+        errorMsg.classList.add('visible');
+      }
+    }
+
+    init();
+  </script>
+</body>
+</html>

@@ -1,0 +1,44 @@
+quotechase/
+├── index.html
+├── privacy.html
+├── terms.html
+├── favicon.ico
+│
+├── css/
+│   ├── main.css
+│   ├── dashboard.css
+│   └── paywall.css
+│
+├── js/
+│   ├── supabase.js
+│   ├── auth.js
+│   ├── dashboard.js
+│   └── tracker.js
+│
+├── auth/
+│   ├── login.html
+│   ├── signup.html
+│   ├── onboarding.html
+│   ├── forgot-password.html
+│   └── reset-password.html
+│
+├── dashboard/
+│   ├── index.html
+│   ├── new-quote.html
+│   ├── quotes.html
+│   └── settings.html
+│
+├── quote/
+│   └── index.html
+│
+├── admin/
+│   └── index.html
+│
+└── supabase/
+    ├── schema.sql
+    └── functions/
+        ├── send-message/
+        │   └── index.ts
+        └── send-followups/
+            ├── index.ts
+            └── config.toml

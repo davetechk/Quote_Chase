@@ -1,0 +1,1054 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>QuoteChase — Win more jobs from the quotes you already send</title>
+  <meta name="description" content="QuoteChase automatically follows up on every quote you send — day 2, 5, 10, and 20 — so you win more jobs without lifting a finger." />
+  <link rel="stylesheet" href="css/main.css" />
+  <link rel="icon" href="favicon.ico" />
+  <style>
+    /* ── Landing-page-specific styles ─────────────────────────────────────── */
+
+    /* Noise texture overlay for depth */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.4;
+    }
+
+    /* ── Nav ──────────────────────────────────────────────────────────────── */
+    .nav { position: sticky; top: 0; z-index: 100; }
+    .nav__inner { max-width: var(--max-w); margin: 0 auto; padding: 0 24px; }
+
+    /* ── Hero ─────────────────────────────────────────────────────────────── */
+    .hero {
+      padding: 100px 0 80px;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero__bg-glow {
+      position: absolute;
+      top: -120px;
+      right: -100px;
+      width: 700px;
+      height: 700px;
+      background: radial-gradient(circle at center, rgba(255,122,0,0.12) 0%, transparent 60%);
+      pointer-events: none;
+    }
+    .hero__bg-glow-2 {
+      position: absolute;
+      bottom: -200px;
+      left: -100px;
+      width: 500px;
+      height: 500px;
+      background: radial-gradient(circle at center, rgba(255,122,0,0.06) 0%, transparent 60%);
+      pointer-events: none;
+    }
+    .hero__inner {
+      max-width: var(--max-w);
+      margin: 0 auto;
+      padding: 0 24px;
+      position: relative;
+      z-index: 1;
+    }
+    .hero__grid {
+      display: grid;
+      grid-template-columns: 1fr 420px;
+      gap: 80px;
+      align-items: center;
+    }
+    @media (max-width: 960px) {
+      .hero__grid { grid-template-columns: 1fr; gap: 56px; }
+    }
+
+    .hero__eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--orange-dim);
+      border: 1px solid rgba(255,122,0,0.25);
+      border-radius: 100px;
+      padding: 5px 14px;
+      font-size: 0.775rem;
+      font-weight: 700;
+      color: var(--orange);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 24px;
+    }
+    .hero__eyebrow-dot {
+      width: 6px; height: 6px;
+      background: var(--orange);
+      border-radius: 50%;
+      animation: pulse 2s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(0.8); }
+    }
+
+    .hero__title {
+      font-size: clamp(2.4rem, 5vw, 4rem);
+      line-height: 1.1;
+      letter-spacing: -0.03em;
+      margin-bottom: 24px;
+      font-weight: 800;
+    }
+    .hero__title .line-orange { color: var(--orange); }
+    .hero__title .line-dim    { color: var(--text-2); font-weight: 600; }
+
+    .hero__sub {
+      font-size: 1.15rem;
+      line-height: 1.7;
+      color: var(--text-2);
+      max-width: 520px;
+      margin-bottom: 40px;
+    }
+
+    .hero__cta {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 48px;
+    }
+
+    .hero__social-proof {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 0.825rem;
+      color: var(--text-3);
+    }
+    .hero__social-proof-avatars {
+      display: flex;
+      margin-right: 4px;
+    }
+    .hero__avatar {
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      border: 2px solid var(--bg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.7rem;
+      font-weight: 700;
+      margin-left: -8px;
+    }
+    .hero__avatar:first-child { margin-left: 0; }
+    .hero__avatar--1 { background: #FF7A00; color: #fff; }
+    .hero__avatar--2 { background: #16A34A; color: #fff; }
+    .hero__avatar--3 { background: #2563EB; color: #fff; }
+
+    /* ── Hero card (right side) ───────────────────────────────────────────── */
+    .hero-card {
+      background: var(--bg-2);
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-xl);
+      overflow: hidden;
+      box-shadow: 0 24px 64px rgba(0,0,0,0.5);
+      position: relative;
+    }
+    .hero-card__header {
+      background: var(--bg-3);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .hero-card__dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+    }
+    .hero-card__dot--red    { background: #ef4444; }
+    .hero-card__dot--yellow { background: #f59e0b; }
+    .hero-card__dot--green  { background: #22c55e; }
+    .hero-card__title-bar {
+      margin-left: 6px;
+      font-size: 0.775rem;
+      color: var(--text-3);
+      font-weight: 600;
+    }
+    .hero-card__body { padding: 24px; }
+
+    .hero-quote-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 14px 0;
+      border-bottom: 1px solid var(--border);
+      animation: fadeUp 0.4s ease both;
+    }
+    .hero-quote-row:last-child { border-bottom: none; }
+    .hero-quote-row:nth-child(1) { animation-delay: 0.1s; }
+    .hero-quote-row:nth-child(2) { animation-delay: 0.2s; }
+    .hero-quote-row:nth-child(3) { animation-delay: 0.3s; }
+    .hero-quote-row:nth-child(4) { animation-delay: 0.4s; }
+
+    .hqr__icon {
+      width: 32px; height: 32px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.85rem;
+      flex-shrink: 0;
+    }
+    .hqr__icon--won      { background: var(--green-dim); }
+    .hqr__icon--followup { background: var(--yellow-dim); }
+    .hqr__icon--sent     { background: var(--bg-3); }
+
+    .hqr__info { flex: 1; min-width: 0; }
+    .hqr__name { font-size: 0.85rem; font-weight: 700; color: var(--text); }
+    .hqr__job  { font-size: 0.75rem; color: var(--text-3); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .hqr__right { text-align: right; flex-shrink: 0; }
+    .hqr__amount { font-size: 0.875rem; font-weight: 800; color: var(--text); }
+    .hqr__badge  { margin-top: 4px; }
+
+    .hero-card__footer {
+      background: var(--orange-dim);
+      border-top: 1px solid rgba(255,122,0,0.2);
+      padding: 14px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .hero-card__footer-label { font-size: 0.775rem; color: var(--orange); font-weight: 700; }
+    .hero-card__footer-value { font-size: 1rem; font-weight: 800; color: var(--orange); }
+
+    /* ── Stats bar ────────────────────────────────────────────────────────── */
+    .stats-bar { position: relative; z-index: 1; }
+
+    /* ── How it works ─────────────────────────────────────────────────────── */
+    .hiw-section {
+      padding: 96px 0;
+      position: relative;
+    }
+    .hiw-section .container { position: relative; z-index: 1; }
+
+    /* Timeline connector */
+    .hiw-timeline {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 64px;
+      align-items: center;
+      margin-top: 64px;
+    }
+    @media (max-width: 800px) {
+      .hiw-timeline { grid-template-columns: 1fr; gap: 40px; }
+    }
+
+    .hiw-steps { display: flex; flex-direction: column; gap: 0; }
+    .hiw-step {
+      display: flex;
+      gap: 20px;
+      padding-bottom: 36px;
+      position: relative;
+    }
+    .hiw-step:not(:last-child)::before {
+      content: '';
+      position: absolute;
+      left: 19px;
+      top: 44px;
+      bottom: 0;
+      width: 2px;
+      background: linear-gradient(to bottom, var(--orange-dim), transparent);
+    }
+    .hiw-step__num {
+      width: 40px; height: 40px;
+      border-radius: 50%;
+      background: var(--bg-3);
+      border: 2px solid var(--border-light);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.875rem; font-weight: 800;
+      color: var(--orange);
+      flex-shrink: 0;
+      position: relative; z-index: 1;
+    }
+    .hiw-step__content { padding-top: 8px; }
+    .hiw-step__title { font-size: 1rem; font-weight: 700; color: var(--text); margin-bottom: 6px; }
+    .hiw-step__body  { font-size: 0.875rem; color: var(--text-3); line-height: 1.65; }
+
+    /* Schedule visualiser */
+    .schedule-vis {
+      background: var(--bg-2);
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-xl);
+      padding: 28px;
+    }
+    .sv__title {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-3);
+      margin-bottom: 20px;
+    }
+    .sv__timeline {
+      position: relative;
+      padding-left: 16px;
+    }
+    .sv__timeline::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 8px;
+      bottom: 8px;
+      width: 2px;
+      background: linear-gradient(to bottom, var(--orange), rgba(255,122,0,0.1));
+    }
+    .sv__event {
+      display: flex;
+      gap: 16px;
+      align-items: flex-start;
+      padding: 12px 0;
+      position: relative;
+    }
+    .sv__event::before {
+      content: '';
+      position: absolute;
+      left: -20px;
+      top: 19px;
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--orange);
+      border: 2px solid var(--bg-2);
+    }
+    .sv__event--dim::before { background: var(--border-light); }
+    .sv__day {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--orange);
+      white-space: nowrap;
+      min-width: 40px;
+      padding-top: 1px;
+    }
+    .sv__event--dim .sv__day { color: var(--text-3); }
+    .sv__msg {
+      font-size: 0.825rem;
+      color: var(--text-2);
+      line-height: 1.5;
+    }
+    .sv__event--dim .sv__msg { color: var(--text-3); }
+    .sv__chip {
+      display: inline-block;
+      background: var(--orange-dim);
+      border-radius: 4px;
+      padding: 1px 7px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: var(--orange);
+      margin-left: 6px;
+    }
+
+    /* ── Problem section ──────────────────────────────────────────────────── */
+    .problem-section {
+      padding: 96px 0;
+      background: var(--bg-2);
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+    }
+    .problem-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 80px;
+      align-items: center;
+    }
+    @media (max-width: 800px) { .problem-grid { grid-template-columns: 1fr; gap: 48px; } }
+
+    .problem-quote {
+      font-size: clamp(1.3rem, 2.5vw, 1.8rem);
+      font-weight: 700;
+      line-height: 1.4;
+      color: var(--text);
+      letter-spacing: -0.02em;
+      margin-bottom: 24px;
+    }
+    .problem-quote span { color: var(--orange); }
+
+    .cost-table { display: flex; flex-direction: column; gap: 0; }
+    .cost-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      padding: 16px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.875rem;
+    }
+    .cost-row:last-child { border-bottom: none; }
+    .cost-row__label { color: var(--text-3); }
+    .cost-row__value { font-weight: 700; color: var(--text); text-align: right; }
+    .cost-row__value--red { color: var(--red); }
+
+    /* ── Feature cards ────────────────────────────────────────────────────── */
+    .features-section { padding: 96px 0; }
+
+    /* ── Pricing ──────────────────────────────────────────────────────────── */
+    .pricing-section {
+      padding: 96px 0;
+      background: var(--bg-2);
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+    }
+
+    /* ── Calculator ───────────────────────────────────────────────────────── */
+    .calc-section { padding: 96px 0; }
+    .calc-inner {
+      background: var(--bg-2);
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-xl);
+      padding: 56px 48px;
+      max-width: 680px;
+      margin: 0 auto;
+      position: relative;
+      overflow: hidden;
+    }
+    @media (max-width: 600px) { .calc-inner { padding: 36px 24px; } }
+    .calc-inner::before {
+      content: '';
+      position: absolute;
+      top: -80px; right: -80px;
+      width: 300px; height: 300px;
+      background: radial-gradient(circle, rgba(255,122,0,0.1) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .calc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 28px; }
+    @media (max-width: 500px) { .calc-grid { grid-template-columns: 1fr; } }
+
+    .calc-result {
+      background: var(--bg-3);
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 32px;
+      text-align: center;
+      display: none;
+    }
+    .calc-result.visible { display: block; animation: fadeUp 0.35s ease; }
+    .calc-result__lost {
+      font-size: clamp(2.4rem, 5vw, 3.6rem);
+      font-weight: 800;
+      color: var(--red);
+      letter-spacing: -0.04em;
+      line-height: 1;
+      margin-bottom: 8px;
+    }
+    .calc-result__label {
+      font-size: 0.875rem;
+      color: var(--text-3);
+      margin-bottom: 24px;
+    }
+    .calc-result__recovered {
+      font-size: 1rem;
+      color: var(--green);
+      font-weight: 700;
+      margin-bottom: 24px;
+    }
+
+    /* ── Testimonials ─────────────────────────────────────────────────────── */
+    .testimonials-section { padding: 96px 0; }
+    .testimonials-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+    }
+    @media (max-width: 900px) { .testimonials-grid { grid-template-columns: 1fr; max-width: 480px; margin: 0 auto; } }
+
+    /* ── CTA banner ───────────────────────────────────────────────────────── */
+    .cta-section {
+      padding: 96px 0;
+      background: var(--bg-2);
+      border-top: 1px solid var(--border);
+    }
+    .cta-box {
+      background: linear-gradient(135deg, var(--bg-3) 0%, rgba(255,122,0,0.06) 100%);
+      border: 1.5px solid rgba(255,122,0,0.25);
+      border-radius: var(--radius-xl);
+      padding: 72px 48px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    @media (max-width: 600px) { .cta-box { padding: 48px 24px; } }
+    .cta-box::before {
+      content: '';
+      position: absolute;
+      top: -100px; left: 50%;
+      transform: translateX(-50%);
+      width: 400px; height: 400px;
+      background: radial-gradient(circle, rgba(255,122,0,0.12) 0%, transparent 60%);
+      pointer-events: none;
+    }
+    .cta-box h2 { position: relative; z-index: 1; margin-bottom: 16px; }
+    .cta-box p  { position: relative; z-index: 1; margin-bottom: 36px; font-size: 1.05rem; max-width: 480px; margin-left: auto; margin-right: auto; }
+    .cta-box .btn { position: relative; z-index: 1; }
+
+    /* ── Footer ───────────────────────────────────────────────────────────── */
+    .footer { position: relative; z-index: 1; }
+  </style>
+</head>
+<body>
+
+  <!-- ── Nav ──────────────────────────────────────────────────────────────── -->
+  <nav class="nav">
+    <div class="nav__inner">
+      <div style="display:flex;align-items:center;justify-content:space-between;height:64px;">
+        <a href="/" class="nav__logo">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 50" width="140" height="44">
+            <g transform="translate(4,7)">
+              <circle cx="18" cy="18" r="14" fill="none" stroke="#6B7280" stroke-width="3.5"/>
+              <path d="M12 23 L32 3 M32 3 L22 3 M32 3 L32 13" stroke="#FF7A00" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+            </g>
+            <text x="52" y="32" font-family="'DM Sans', sans-serif" font-size="20" font-weight="800" fill="#F8F9FA" letter-spacing="-0.5">Quote<tspan fill="#FF7A00" font-weight="400">Chase</tspan></text>
+          </svg>
+        </a>
+        <div class="nav__links">
+          <a href="#how-it-works" class="btn btn--ghost btn--sm" style="display:none;" id="nav-how">How it works</a>
+          <a href="#pricing" class="btn btn--ghost btn--sm">Pricing</a>
+          <a href="/auth/login.html" class="btn btn--ghost btn--sm">Sign in</a>
+          <a href="/auth/signup.html" class="btn btn--primary btn--sm">Start free trial</a>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ── Hero ─────────────────────────────────────────────────────────────── -->
+  <section class="hero">
+    <div class="hero__bg-glow"></div>
+    <div class="hero__bg-glow-2"></div>
+    <div class="hero__inner">
+      <div class="hero__grid">
+
+        <!-- Left: copy -->
+        <div>
+          <div class="hero__eyebrow">
+            <span class="hero__eyebrow-dot"></span>
+            For UK Roofers &amp; Builders
+          </div>
+          <h1 class="hero__title">
+            Win more jobs from<br/>
+            <span class="line-orange">the quotes you</span><br/>
+            <span class="line-orange">already send.</span>
+          </h1>
+          <p class="hero__sub">
+            Most roofers win 2–3 jobs out of every 10 quotes. A big chunk of the rest are lost simply because nobody followed up. QuoteChase fixes that automatically.
+          </p>
+          <div class="hero__cta">
+            <a href="/auth/signup.html" class="btn btn--primary btn--lg">Start free trial — 14 days free</a>
+            <a href="#how-it-works" class="btn btn--ghost btn--lg">See how it works</a>
+          </div>
+          <div class="hero__social-proof">
+            <div class="hero__social-proof-avatars">
+              <div class="hero__avatar hero__avatar--1">JS</div>
+              <div class="hero__avatar hero__avatar--2">MR</div>
+              <div class="hero__avatar hero__avatar--3">PK</div>
+            </div>
+            Trusted by roofers winning more jobs every week
+          </div>
+        </div>
+
+        <!-- Right: dashboard preview card -->
+        <div>
+          <div class="hero-card">
+            <div class="hero-card__header">
+              <div class="hero-card__dot hero-card__dot--red"></div>
+              <div class="hero-card__dot hero-card__dot--yellow"></div>
+              <div class="hero-card__dot hero-card__dot--green"></div>
+              <span class="hero-card__title-bar">QuoteChase — Recent Quotes</span>
+            </div>
+            <div class="hero-card__body">
+
+              <div class="hero-quote-row">
+                <div class="hqr__icon hqr__icon--won">✓</div>
+                <div class="hqr__info">
+                  <div class="hqr__name">Sarah Thompson</div>
+                  <div class="hqr__job">Full re-roof, 3-bed semi</div>
+                </div>
+                <div class="hqr__right">
+                  <div class="hqr__amount">£5,400</div>
+                  <div class="hqr__badge"><span class="badge badge--won">Won</span></div>
+                </div>
+              </div>
+
+              <div class="hero-quote-row">
+                <div class="hqr__icon hqr__icon--followup">→</div>
+                <div class="hqr__info">
+                  <div class="hqr__name">David Clarke</div>
+                  <div class="hqr__job">Flat roof repair + gutters</div>
+                </div>
+                <div class="hqr__right">
+                  <div class="hqr__amount">£2,800</div>
+                  <div class="hqr__badge"><span class="badge badge--followup">Day 5 sent</span></div>
+                </div>
+              </div>
+
+              <div class="hero-quote-row">
+                <div class="hqr__icon hqr__icon--followup">→</div>
+                <div class="hqr__info">
+                  <div class="hqr__name">Amanda Wilson</div>
+                  <div class="hqr__job">Ridge tiles + repoint</div>
+                </div>
+                <div class="hqr__right">
+                  <div class="hqr__amount">£1,950</div>
+                  <div class="hqr__badge"><span class="badge badge--followup">Day 2 sent</span></div>
+                </div>
+              </div>
+
+              <div class="hero-quote-row">
+                <div class="hqr__icon hqr__icon--won">✓</div>
+                <div class="hqr__info">
+                  <div class="hqr__name">Robert Hughes</div>
+                  <div class="hqr__job">Full strip &amp; re-tile, detached</div>
+                </div>
+                <div class="hqr__right">
+                  <div class="hqr__amount">£7,200</div>
+                  <div class="hqr__badge"><span class="badge badge--won">Won</span></div>
+                </div>
+              </div>
+
+            </div>
+            <div class="hero-card__footer">
+              <span class="hero-card__footer-label">💰 Open quote value</span>
+              <span class="hero-card__footer-value">£4,750</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Stats bar ──────────────────────────────────────────────────────────── -->
+  <div class="stats-bar">
+    <div class="container">
+      <div class="stats-bar__grid">
+        <div class="stats-bar__item">
+          <div class="stats-bar__num">2–3</div>
+          <div class="stats-bar__label">Jobs won per 10 quotes (industry avg)</div>
+        </div>
+        <div class="stats-bar__item">
+          <div class="stats-bar__num">£3–8k</div>
+          <div class="stats-bar__label">Average roofing job value</div>
+        </div>
+        <div class="stats-bar__item">
+          <div class="stats-bar__num">£29</div>
+          <div class="stats-bar__label">Per month — one job pays for years</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Problem ────────────────────────────────────────────────────────────── -->
+  <section class="problem-section">
+    <div class="container">
+      <div class="problem-grid">
+        <div>
+          <div class="section-label">The Problem</div>
+          <p class="problem-quote">
+            You're on a roof all day. By evening, chasing quotes is the <span>last thing</span> you want to do.
+          </p>
+          <p style="font-size:0.95rem;color:var(--text-3);line-height:1.7;margin-bottom:24px;">
+            So you don't. And the job quietly goes to the competitor who did follow up — not because they were cheaper, but because they stayed in touch.
+          </p>
+          <p style="font-size:0.95rem;color:var(--text-3);line-height:1.7;">
+            In the trades, the first and most consistent responder wins the job. QuoteChase automates exactly that behaviour — without you lifting a finger.
+          </p>
+        </div>
+        <div>
+          <div class="section-label" style="margin-bottom:16px;">What it costs you</div>
+          <div class="cost-table">
+            <div class="cost-row">
+              <div class="cost-row__label">Quotes sent per week</div>
+              <div class="cost-row__value">10</div>
+            </div>
+            <div class="cost-row">
+              <div class="cost-row__label">Average win rate</div>
+              <div class="cost-row__value">2–3 out of 10</div>
+            </div>
+            <div class="cost-row">
+              <div class="cost-row__label">Average job value</div>
+              <div class="cost-row__value">£3,000 – £8,000</div>
+            </div>
+            <div class="cost-row">
+              <div class="cost-row__label">Winnable jobs lost to no follow-up</div>
+              <div class="cost-row__value cost-row__value--red">1–2 per month</div>
+            </div>
+            <div class="cost-row">
+              <div class="cost-row__label">Monthly income left on the table</div>
+              <div class="cost-row__value cost-row__value--red">£3,000 – £10,000+</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── How it works ───────────────────────────────────────────────────────── -->
+  <section class="hiw-section" id="how-it-works">
+    <div class="container">
+      <div class="section-head">
+        <div class="section-label">How it works</div>
+        <h2 class="section-title">Set up in 2 minutes.<br/>Runs forever after that.</h2>
+        <p class="section-sub">You enter the quote once. QuoteChase handles everything else.</p>
+      </div>
+
+      <div class="hiw-timeline">
+        <div class="hiw-steps">
+          <div class="hiw-step">
+            <div class="hiw-step__num">1</div>
+            <div class="hiw-step__content">
+              <div class="hiw-step__title">Enter the quote</div>
+              <div class="hiw-step__body">After a site visit, open QuoteChase on your phone. Enter the customer name, email, phone, job description, and amount. Takes 60 seconds.</div>
+            </div>
+          </div>
+          <div class="hiw-step">
+            <div class="hiw-step__num">2</div>
+            <div class="hiw-step__content">
+              <div class="hiw-step__title">Quote is sent instantly</div>
+              <div class="hiw-step__body">The customer receives a clean, professional quote by email and SMS. It looks like it came directly from you.</div>
+            </div>
+          </div>
+          <div class="hiw-step">
+            <div class="hiw-step__num">3</div>
+            <div class="hiw-step__content">
+              <div class="hiw-step__title">Follow-ups fire automatically</div>
+              <div class="hiw-step__body">If the customer goes quiet, polite follow-up messages go out on day 2, 5, 10, and 20. Each one gets slightly firmer. You do nothing.</div>
+            </div>
+          </div>
+          <div class="hiw-step">
+            <div class="hiw-step__num">4</div>
+            <div class="hiw-step__content">
+              <div class="hiw-step__title">Customer replies — you win the job</div>
+              <div class="hiw-step__body">The moment the customer replies, or you mark the job Won or Lost from your dashboard, all follow-ups stop. No awkward over-chasing.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Schedule visualiser -->
+        <div class="schedule-vis">
+          <div class="sv__title">Follow-up schedule — John Smith, £4,200</div>
+          <div class="sv__timeline">
+            <div class="sv__event">
+              <div class="sv__day">Day 0</div>
+              <div class="sv__msg">Quote sent by email + SMS <span class="sv__chip">sent</span></div>
+            </div>
+            <div class="sv__event">
+              <div class="sv__day">Day 2</div>
+              <div class="sv__msg">"Hi John, just following up on the quote for £4,200…" <span class="sv__chip">sent</span></div>
+            </div>
+            <div class="sv__event">
+              <div class="sv__day">Day 5</div>
+              <div class="sv__msg">"Checking in — happy to answer any questions…" <span class="sv__chip">sent</span></div>
+            </div>
+            <div class="sv__event sv__event--dim">
+              <div class="sv__day">Day 10</div>
+              <div class="sv__msg">Third follow-up — still available for the job…</div>
+            </div>
+            <div class="sv__event sv__event--dim">
+              <div class="sv__day">Day 20</div>
+              <div class="sv__msg">Final follow-up — last chance message…</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Features ───────────────────────────────────────────────────────────── -->
+  <section class="features-section">
+    <div class="container">
+      <div class="section-head section-head--center">
+        <div class="section-label">Features</div>
+        <h2 class="section-title">Everything a roofer needs.<br/>Nothing they don't.</h2>
+      </div>
+      <div class="feature-grid">
+        <div class="feature-card">
+          <div class="feature-card__icon">⚡</div>
+          <div class="feature-card__title">Automatic follow-ups</div>
+          <div class="feature-card__body">Day 2, 5, 10, and 20. Each message is polite and gets slightly firmer. Stops the moment the customer replies.</div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-card__icon">📱</div>
+          <div class="feature-card__title">Email + SMS</div>
+          <div class="feature-card__body">Quotes and key follow-ups go out by both email and SMS so customers actually see them.</div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-card__icon">📊</div>
+          <div class="feature-card__title">Live dashboard</div>
+          <div class="feature-card__body">See every quote and its status — sent, following up, won, lost — plus the total value of all open quotes.</div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-card__icon">✏️</div>
+          <div class="feature-card__title">Custom messages</div>
+          <div class="feature-card__body">Edit each follow-up message to sound like you. Use your business name, the customer's name, and the quote amount automatically.</div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-card__icon">📱</div>
+          <div class="feature-card__title">Mobile first</div>
+          <div class="feature-card__body">Built for tradespeople on the go. Works perfectly on any phone — no app to download.</div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-card__icon">🔒</div>
+          <div class="feature-card__title">Your data, only yours</div>
+          <div class="feature-card__body">Every business sees only their own quotes. No sharing, no ads, no funny business.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Pricing ────────────────────────────────────────────────────────────── -->
+  <section class="pricing-section" id="pricing">
+    <div class="container">
+      <div class="section-head section-head--center">
+        <div class="section-label">Pricing</div>
+        <h2 class="section-title">One extra job pays for years.</h2>
+        <p class="section-sub">All plans include a 14-day free trial. No card required to start.</p>
+      </div>
+
+      <div class="pricing-grid">
+
+        <!-- Solo -->
+        <div class="pricing-card">
+          <div class="pricing-card__name">Solo</div>
+          <div class="pricing-card__price">
+            <span class="pricing-card__currency">£</span>
+            <span class="pricing-card__amount">29</span>
+            <span class="pricing-card__period">/mo</span>
+          </div>
+          <div class="pricing-card__quota">40 quotes per month</div>
+          <div class="pricing-card__features">
+            <div class="pricing-card__feature">Automated follow-ups day 2, 5, 10 &amp; 20</div>
+            <div class="pricing-card__feature">Email + SMS delivery</div>
+            <div class="pricing-card__feature">Quote status dashboard</div>
+            <div class="pricing-card__feature">Won / Lost tracking</div>
+          </div>
+          <a href="/auth/signup.html" class="btn btn--ghost w-full">Start free trial</a>
+        </div>
+
+        <!-- Crew -->
+        <div class="pricing-card pricing-card--featured">
+          <div class="pricing-badge">Most Popular</div>
+          <div class="pricing-card__name">Crew</div>
+          <div class="pricing-card__price">
+            <span class="pricing-card__currency">£</span>
+            <span class="pricing-card__amount">59</span>
+            <span class="pricing-card__period">/mo</span>
+          </div>
+          <div class="pricing-card__quota">150 quotes per month</div>
+          <div class="pricing-card__features">
+            <div class="pricing-card__feature">Everything in Solo</div>
+            <div class="pricing-card__feature">Up to 10 team members</div>
+            <div class="pricing-card__feature">Custom follow-up messages</div>
+            <div class="pricing-card__feature">Priority email support</div>
+          </div>
+          <a href="/auth/signup.html" class="btn btn--primary w-full">Start free trial</a>
+        </div>
+
+        <!-- Pro -->
+        <div class="pricing-card">
+          <div class="pricing-card__name">Pro</div>
+          <div class="pricing-card__price">
+            <span class="pricing-card__currency">£</span>
+            <span class="pricing-card__amount">99</span>
+            <span class="pricing-card__period">/mo</span>
+          </div>
+          <div class="pricing-card__quota">Unlimited quotes</div>
+          <div class="pricing-card__features">
+            <div class="pricing-card__feature">Everything in Crew</div>
+            <div class="pricing-card__feature">Unlimited quotes &amp; team</div>
+            <div class="pricing-card__feature">Priority phone support</div>
+            <div class="pricing-card__feature">Early access to new features</div>
+          </div>
+          <a href="/auth/signup.html" class="btn btn--ghost w-full">Start free trial</a>
+        </div>
+
+      </div>
+
+      <p style="text-align:center;margin-top:32px;font-size:0.875rem;color:var(--text-3);">
+        A roofer who wins one extra £4,000 job has made <strong style="color:var(--orange);">137×</strong> their monthly fee back from a single job.
+      </p>
+    </div>
+  </section>
+
+  <!-- ── Ghosted Quote Calculator ───────────────────────────────────────────── -->
+  <section class="calc-section" id="calculator">
+    <div class="container">
+      <div class="section-head section-head--center">
+        <div class="section-label">Free Calculator</div>
+        <h2 class="section-title">How much are ghosted<br/>quotes costing you?</h2>
+        <p class="section-sub">Enter your numbers and find out exactly how much you're leaving on the table every year.</p>
+      </div>
+
+      <div class="calc-inner">
+        <div class="calc-grid">
+          <div class="form-group">
+            <label class="form-label" for="calc-job-value">Average job value (£)</label>
+            <input class="form-input" type="number" id="calc-job-value"
+                   placeholder="4000" min="100" />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="calc-quotes-month">Quotes sent per month</label>
+            <input class="form-input" type="number" id="calc-quotes-month"
+                   placeholder="15" min="1" />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="calc-win-rate">Current win rate (%)</label>
+            <input class="form-input" type="number" id="calc-win-rate"
+                   placeholder="25" min="1" max="100" />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="calc-ghosted">Quotes that go silent (%)</label>
+            <input class="form-input" type="number" id="calc-ghosted"
+                   placeholder="40" min="1" max="100" />
+          </div>
+        </div>
+
+        <button class="btn btn--primary w-full" id="calc-btn" type="button">
+          Calculate what I'm losing
+        </button>
+
+        <div class="calc-result" id="calc-result">
+          <div class="calc-result__lost" id="calc-lost-amount">£0</div>
+          <div class="calc-result__label">lost per year to ghosted quotes</div>
+          <div class="calc-result__recovered" id="calc-recovered"></div>
+          <a href="/auth/signup.html" class="btn btn--primary btn--lg">
+            Start recovering that money — free trial
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Testimonials ───────────────────────────────────────────────────────── -->
+  <section class="testimonials-section">
+    <div class="container">
+      <div class="section-head section-head--center">
+        <div class="section-label">From roofers using QuoteChase</div>
+        <h2 class="section-title">They stopped losing jobs<br/>to silence.</h2>
+      </div>
+      <div class="testimonials-grid">
+        <div class="testimonial">
+          <div class="testimonial__quote">"I used to follow up on maybe 2 or 3 quotes. Now every single one gets chased automatically. Won a £6,500 job last week that I'd totally forgotten about."</div>
+          <div class="testimonial__author">James S.</div>
+          <div class="testimonial__role">Roofing contractor, Manchester</div>
+        </div>
+        <div class="testimonial">
+          <div class="testimonial__quote">"Takes me 30 seconds to add a quote. The follow-ups just go out. It's the best £29 I spend every month — made that back three times over in the first week."</div>
+          <div class="testimonial__author">Mike R.</div>
+          <div class="testimonial__role">Builder, Birmingham</div>
+        </div>
+        <div class="testimonial">
+          <div class="testimonial__quote">"Customers actually comment on how professional and on-the-ball I seem. Meanwhile I'm just getting on with the work. Brilliant."</div>
+          <div class="testimonial__author">Paul K.</div>
+          <div class="testimonial__role">Roofing &amp; gutters, Leeds</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── CTA ───────────────────────────────────────────────────────────────── -->
+  <section class="cta-section">
+    <div class="container">
+      <div class="cta-box">
+        <h2>Start winning more of the<br/>jobs you already quote for.</h2>
+        <p>14-day free trial. No card required. Set up in under 2 minutes.</p>
+        <a href="/auth/signup.html" class="btn btn--primary btn--lg">Create your free account →</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Footer ─────────────────────────────────────────────────────────────── -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer__inner">
+        <div>
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 50" width="120" height="38">
+            <g transform="translate(4,7)">
+              <circle cx="18" cy="18" r="14" fill="none" stroke="#6B7280" stroke-width="3.5"/>
+              <path d="M12 23 L32 3 M32 3 L22 3 M32 3 L32 13" stroke="#FF7A00" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+            </g>
+            <text x="52" y="32" font-family="'DM Sans', sans-serif" font-size="20" font-weight="800" fill="#F8F9FA" letter-spacing="-0.5">Quote<tspan fill="#FF7A00" font-weight="400">Chase</tspan></text>
+          </svg>
+          <p style="font-size:0.8rem;color:var(--text-3);margin-top:8px;">Win more jobs from the quotes you already send.</p>
+        </div>
+        <div class="footer__links">
+          <a href="#how-it-works">How it works</a>
+          <a href="#pricing">Pricing</a>
+          <a href="/privacy.html">Privacy</a>
+          <a href="/terms.html">Terms</a>
+          <a href="mailto:hello@quotechase.io">Contact</a>
+        </div>
+      </div>
+      <div style="margin-top:32px;padding-top:24px;border-top:1px solid var(--border);font-size:0.775rem;color:var(--text-3);">
+        © 2026 QuoteChase. All rights reserved.
+      </div>
+    </div>
+  </footer>
+
+  <script type="module">
+    import { trackVisit } from '/js/tracker.js';
+    trackVisit('/');
+
+    // ── Ghosted Quote Calculator ────────────────────────────────────────────
+    const calcBtn    = document.getElementById('calc-btn');
+    const calcResult = document.getElementById('calc-result');
+
+    calcBtn.addEventListener('click', () => {
+      const jobValue    = parseFloat(document.getElementById('calc-job-value').value)    || 0;
+      const quotesMonth = parseFloat(document.getElementById('calc-quotes-month').value) || 0;
+      const ghostedPct  = parseFloat(document.getElementById('calc-ghosted').value)      || 0;
+
+      if (!jobValue || !quotesMonth || !ghostedPct) {
+        document.getElementById('calc-job-value').focus();
+        return;
+      }
+
+      // Quotes that go silent per month
+      const ghostedPerMonth = quotesMonth * (ghostedPct / 100);
+      // Assume recovering ~30% of ghosted quotes with follow-up
+      const recoverablePct  = 0.30;
+      const recoveredJobs   = ghostedPerMonth * recoverablePct;
+
+      // Annual loss: ghosted quotes * job value * 12
+      const annualLoss      = ghostedPerMonth * jobValue * 12;
+      // Annual recovery potential
+      const annualRecovered = recoveredJobs * jobValue * 12;
+
+      document.getElementById('calc-lost-amount').textContent =
+        '£' + Math.round(annualLoss).toLocaleString('en-GB');
+
+      document.getElementById('calc-recovered').textContent =
+        `QuoteChase could help you recover ~£${Math.round(annualRecovered).toLocaleString('en-GB')} of that per year`;
+
+      calcResult.classList.add('visible');
+      calcResult.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    });
+
+    // Allow Enter on inputs
+    ['calc-job-value','calc-quotes-month','calc-win-rate','calc-ghosted'].forEach(id => {
+      document.getElementById(id)?.addEventListener('keydown', e => {
+        if (e.key === 'Enter') calcBtn.click();
+      });
+    });
+
+    // ── Smooth scroll for nav links ─────────────────────────────────────────
+    document.querySelectorAll('a[href^="#"]').forEach(a => {
+      a.addEventListener('click', e => {
+        const target = document.querySelector(a.getAttribute('href'));
+        if (target) {
+          e.preventDefault();
+          target.scrollIntoView({ behavior: 'smooth' });
+        }
+      });
+    });
+  </script>
+
+</body>
+</html>

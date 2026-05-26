@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard — QuoteChase</title>
+  <link rel="stylesheet" href="/css/main.css" />
+  <link rel="stylesheet" href="/css/dashboard.css" />
+  <link rel="stylesheet" href="/css/paywall.css" />
+  <link rel="icon" href="/favicon.ico" />
+</head>
+<body>
+  <div class="dashboard-layout">
+
+    <!-- Sidebar injected here -->
+    <div id="sidebar-container"></div>
+
+    <div class="dashboard-main">
+
+      <!-- Trial banner (shown during trial) -->
+      <div class="trial-banner" id="trial-banner" style="display:none;">
+        <span class="trial-banner__text">
+          🎉 You're on a <strong>free trial</strong> — <span id="trial-days-left"></span> days remaining.
+        </span>
+        <a href="/dashboard/settings.html#billing" class="trial-banner__cta">Upgrade now</a>
+      </div>
+
+      <!-- Top bar -->
+      <header class="dashboard-header">
+        <span class="dashboard-header__title">Dashboard</span>
+        <a href="/dashboard/new-quote.html" class="btn btn--primary btn--sm">+ New Quote</a>
+      </header>
+
+      <main class="dashboard-body">
+
+        <div class="page-title">Good to see you, <span id="owner-name">—</span> 👋</div>
+        <p class="page-sub">Here's how your quotes are performing.</p>
+
+        <!-- Stats grid -->
+        <div class="stats-grid" id="stats-grid">
+          <div class="stat-card">
+            <div class="stat-card__label">Total Quotes</div>
+            <div class="stat-card__value" id="stat-total">—</div>
+            <div class="stat-card__sub">all time</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card__label">Following Up</div>
+            <div class="stat-card__value stat-card__value--yellow" id="stat-followup">—</div>
+            <div class="stat-card__sub">awaiting reply</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card__label">Jobs Won</div>
+            <div class="stat-card__value stat-card__value--green" id="stat-won">—</div>
+            <div class="stat-card__sub">all time</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card__label">Open Value</div>
+            <div class="stat-card__value stat-card__value--orange" id="stat-value">—</div>
+            <div class="stat-card__sub">quotes still active</div>
+          </div>
+        </div>
+
+        <!-- Recent quotes table -->
+        <div class="table-wrap">
+          <div class="table-header">
+            <span class="table-title">Recent Quotes</span>
+            <a href="/dashboard/quotes.html" class="btn btn--ghost btn--sm">View all →</a>
+          </div>
+
+          <div class="table-container">
+            <table id="quotes-table">
+              <thead>
+                <tr>
+                  <th>Customer</th>
+                  <th>Job</th>
+                  <th>Amount</th>
+                  <th>Status</th>
+                  <th>Sent</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="quotes-tbody">
+                <tr>
+                  <td colspan="6" class="table-empty">Loading quotes…</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </main>
+    </div>
+  </div>
+
+  <script type="module">
+    import { supabase }                                          from '/js/supabase.js';
+    import { requireAuth, getProfile, renderSidebar,
+             hasAccess, showPaywall, sanitize }                  from '/js/dashboard.js';
+    import { trackVisit }                                        from '/js/tracker.js';
+
+    trackVisit('/dashboard');
+
+    // ── Status badge HTML ────────────────────────────────────────────────────
+    function statusBadge(status) {
+      const map = {
+        sent:      '<span class="badge badge--sent">Sent</span>',
+        followup:  '<span class="badge badge--followup">Following Up</span>',
+        won:       '<span class="badge badge--won">Won</span>',
+        lost:      '<span class="badge badge--lost">Lost</span>',
+      };
+      return map[status] || `<span class="badge badge--sent">${sanitize(status)}</span>`;
+    }
+
+    // ── Format currency ──────────────────────────────────────────────────────
+    function formatGBP(amount) {
+      return '£' + Number(amount).toLocaleString('en-GB', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+    }
+
+    // ── Format date ──────────────────────────────────────────────────────────
+    function formatDate(iso) {
+      return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+    }
+
+    // ── Update quote status ──────────────────────────────────────────────────
+    async function updateStatus(quoteId, newStatus) {
+      const updates = { status: newStatus };
+      if (newStatus === 'won' || newStatus === 'lost') {
+        updates.customer_replied = true;
+      }
+      const { error } = await supabase
+        .from('quotes')
+        .update(updates)
+        .eq('id', quoteId);
+      if (error) { alert('Failed to update status. Please try again.'); return; }
+      await loadDashboard(currentProfile);
+    }
+
+    // ── Render recent quotes table ───────────────────────────────────────────
+    function renderQuotes(quotes) {
+      const tbody = document.getElementById('quotes-tbody');
+      if (!quotes.length) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="6" class="table-empty">
+              No quotes yet. <a href="/dashboard/new-quote.html" style="color:var(--orange);">Send your first quote →</a>
+            </td>
+          </tr>`;
+        return;
+      }
+
+      tbody.innerHTML = quotes.map(q => {
+        const canAct = q.status !== 'won' && q.status !== 'lost';
+        const actions = canAct ? `
+          <div style="display:flex;gap:6px;flex-wrap:wrap;">
+            <button class="action-btn action-btn--won"   onclick="window.__updateStatus('${q.id}','won')">Won</button>
+            <button class="action-btn action-btn--lost"  onclick="window.__updateStatus('${q.id}','lost')">Lost</button>
+            <button class="action-btn action-btn--reply" onclick="window.__updateStatus('${q.id}','followup')">Replied</button>
+          </div>` : '<span class="text-muted text-xs">—</span>';
+
+        return `
+          <tr>
+            <td>${sanitize(q.customer_name)}</td>
+            <td style="max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${sanitize(q.job_description)}</td>
+            <td style="white-space:nowrap;font-weight:700;color:var(--text);">${formatGBP(q.quote_amount)}</td>
+            <td>${statusBadge(q.status)}</td>
+            <td style="white-space:nowrap;color:var(--text-3);">${formatDate(q.created_at)}</td>
+            <td>${actions}</td>
+          </tr>`;
+      }).join('');
+    }
+
+    // ── Render stats ─────────────────────────────────────────────────────────
+    function renderStats(quotes) {
+      const total    = quotes.length;
+      const followup = quotes.filter(q => q.status === 'sent' || q.status === 'followup').length;
+      const won      = quotes.filter(q => q.status === 'won').length;
+      const openVal  = quotes
+        .filter(q => q.status === 'sent' || q.status === 'followup')
+        .reduce((sum, q) => sum + Number(q.quote_amount), 0);
+
+      document.getElementById('stat-total').textContent   = total;
+      document.getElementById('stat-followup').textContent = followup;
+      document.getElementById('stat-won').textContent     = won;
+      document.getElementById('stat-value').textContent   = formatGBP(openVal);
+    }
+
+    // ── Trial banner ─────────────────────────────────────────────────────────
+    function renderTrialBanner(profile) {
+      if (profile.subscription_status !== 'trial') return;
+      const trialEnd  = new Date(profile.trial_ends_at);
+      const now       = new Date();
+      const daysLeft  = Math.ceil((trialEnd - now) / (1000 * 60 * 60 * 24));
+      if (daysLeft > 0) {
+        const banner = document.getElementById('trial-banner');
+        document.getElementById('trial-days-left').textContent = daysLeft;
+        banner.style.display = 'flex';
+      }
+    }
+
+    // ── Main load ────────────────────────────────────────────────────────────
+    let currentProfile = null;
+
+    async function loadDashboard(profile) {
+      const { data: quotes, error } = await supabase
+        .from('quotes')
+        .select('*')
+        .eq('business_id', profile.id)
+        .order('created_at', { ascending: false })
+        .limit(10);
+
+      if (error) {
+        document.getElementById('quotes-tbody').innerHTML =
+          '<tr><td colspan="6" class="table-empty">Failed to load quotes.</td></tr>';
+        return;
+      }
+
+      renderStats(quotes || []);
+      renderQuotes(quotes || []);
+    }
+
+    // ── Init ─────────────────────────────────────────────────────────────────
+    async function init() {
+      const session = await requireAuth();
+      const profile = await getProfile(session.user.id);
+
+      if (!profile) {
+        window.location.href = '/auth/login.html';
+        throw new Error('no profile');
+      }
+
+      currentProfile = profile;
+
+      renderSidebar(profile, 'dashboard');
+      renderTrialBanner(profile);
+
+      document.getElementById('owner-name').textContent =
+        sanitize(profile.owner_name || profile.business_name || 'there');
+
+      if (!hasAccess(profile)) {
+        showPaywall();
+      }
+
+      await loadDashboard(profile);
+    }
+
+    // Expose status updater to inline onclick handlers
+    window.__updateStatus = (id, status) => updateStatus(id, status);
+
+    init().catch(err => {
+      if (err.message !== 'no session' && err.message !== 'no profile') console.error(err);
+    });
+  </script>
+</body>
+</html>
