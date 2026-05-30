@@ -83,7 +83,7 @@ export function showPaywall() {
           View Plans &amp; Upgrade
         </a>
       </div>
-      <p class="paywall-sub">Questions? Email <a href="mailto:hello@quotechase.io">hello@quotechase.io</a></p>
+      <p class="paywall-sub">Questions? Email <a href="mailto:hello@getquotechase.com">hello@getquotechase.com</a></p>
     </div>
   `;
   document.body.appendChild(overlay);
@@ -165,3 +165,4 @@ export function renderSidebar(profile, activePage) {
     backdrop?.classList.remove('backdrop--visible');
   });
 }
+
