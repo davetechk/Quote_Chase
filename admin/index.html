@@ -271,10 +271,7 @@
       document.getElementById('admin-updated').textContent = 'Refreshing…';
 
       // Fetch all profiles
-      const { data: profiles, error: profErr } = await supabase
-        .from('profiles')
-        .select('*')
-        .order('created_at', { ascending: false });
+      const { data: profiles } = await supabase.rpc('get_all_profiles');
 
       if (profErr) {
         document.getElementById('admin-updated').textContent = 'Error loading data.';
@@ -282,22 +279,13 @@
       }
 
       // Fetch all quotes (recent 200)
-      const { data: quotes } = await supabase
-        .from('quotes')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(200);
+      const { data: quotes }   = await supabase.rpc('get_all_quotes');
 
       // Fetch site visits (last 30 days, max 100)
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-      const { data: visits } = await supabase
-        .from('site_visits')
-        .select('*')
-        .gte('visited_at', thirtyDaysAgo.toISOString())
-        .order('visited_at', { ascending: false })
-        .limit(100);
+      const { data: visits }   = await supabase.rpc('get_recent_visits');
 
       // ── Stats ───────────────────────────────────────────────────────────
       const totalUsers   = profiles?.length || 0;
