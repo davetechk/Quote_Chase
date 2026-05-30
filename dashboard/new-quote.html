@@ -82,6 +82,16 @@
             </div>
           </div>
 
+          <!-- Checkbox with this details "By submitting this quote, the customer consents to receive automated follow-up SMS reminders regarding their estimate. Reply STOP to opt out." -->
+          <div class="form-group" style="margin-top:24px;">
+            <label class="form-label" for="sms-consent" style="display:flex;gap:10px;align-items:flex-start;">
+              <input type="checkbox" id="sms-consent" required style="margin-top:4px;" />
+              <span style="font-size:0.95rem; line-height:1.5;">
+                By submitting this quote, the customer consents to receive automated follow-up SMS reminders regarding their estimate. Reply STOP to opt out.
+              </span>
+            </label>
+          </div>
+
           <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:28px;">
             <button class="btn btn--primary" id="submit-btn" type="button">
               <span id="btn-text">Send quote &amp; start follow-ups</span>
@@ -157,6 +167,7 @@
     const submitBtn          = document.getElementById('submit-btn');
     const btnText            = document.getElementById('btn-text');
     const spinner            = document.getElementById('spinner');
+    const smsConsentCheckbox = document.getElementById('sms-consent');
     const errorMsg           = document.getElementById('error-msg');
     const successMsg         = document.getElementById('success-msg');
     const quotaWarn          = document.getElementById('quota-warn');
@@ -223,6 +234,10 @@
       // Validation
       if (!customerName || !quoteAmount || !customerEmail || !jobDesc) {
         showError('Please fill in all required fields.');
+        return;
+      }
+      if (!smsConsentCheckbox.checked) {
+        showError('Please confirm consent for SMS follow-up reminders before sending this quote.');
         return;
       }
       if (isNaN(Number(quoteAmount)) || Number(quoteAmount) <= 0) {
@@ -306,6 +321,7 @@
         customerEmailInput.value = '';
         customerPhoneInput.value = '';
         jobDescInput.value       = '';
+        smsConsentCheckbox.checked = false;
         quotePreview.style.display = 'none';
 
         // Redirect to all quotes after 2s
