@@ -270,22 +270,22 @@
     async function loadAdminData() {
       document.getElementById('admin-updated').textContent = 'Refreshing…';
 
-      // Fetch all profiles
-      const { data: profiles } = await supabase.rpc('get_all_profiles');
+     // Fetch all profiles
+const { data: profiles, error: profErr } = await supabase.rpc('get_all_profiles');
 
-      if (profErr) {
-        document.getElementById('admin-updated').textContent = 'Error loading data.';
-        return;
-      }
+if (profErr) {
+  document.getElementById('admin-updated').textContent = 'Error loading data: ' + profErr.message;
+  console.error('profiles error:', profErr);
+  return;
+}
 
-      // Fetch all quotes (recent 200)
-      const { data: quotes }   = await supabase.rpc('get_all_quotes');
+// Fetch all quotes (recent 200)
+const { data: quotes, error: quotesErr } = await supabase.rpc('get_all_quotes');
+if (quotesErr) console.error('quotes error:', quotesErr);
 
-      // Fetch site visits (last 30 days, max 100)
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
-      const { data: visits }   = await supabase.rpc('get_recent_visits');
+// Fetch site visits (last 30 days, max 100)
+const { data: visits, error: visitsErr } = await supabase.rpc('get_recent_visits');
+if (visitsErr) console.error('visits error:', visitsErr);
 
       // ── Stats ───────────────────────────────────────────────────────────
       const totalUsers   = profiles?.length || 0;
