@@ -264,13 +264,20 @@
 
     trackVisit('/auth/onboarding');
 
-    // ── Dodo Payments checkout URLs ─────────────────────────────────────────
-    // Replace these with your actual Dodo product checkout links
-    const DODO_LINKS = {
-      solo: 'https://checkout.dodopayments.com/buy/pdt_0NgijtDsudaDD1tf3AQZC?quantity=1&redirect_url=https://www.getquotechase.com%2Fdashboard',
-      crew: 'https://checkout.dodopayments.com/buy/pdt_0Ngil7HrWjMqjw7lOVTzW?quantity=1&redirect_url=https://www.getquotechase.com%2Fdashboard',
-      pro:  'https://checkout.dodopayments.com/buy/pdt_0NgilRTE6D0F9Hgz9Qi7z?quantity=1&redirect_url=https://www.getquotechase.com%2Fdashboard',
+    // ── Dodo base URLs — no query params here, we build them below ──────────
+    const DODO_BASE = {
+      solo: 'https://checkout.dodopayments.com/buy/pdt_0NgijtDsudaDD1tf3AQZC',
+      crew: 'https://checkout.dodopayments.com/buy/pdt_0Ngil7HrWjMqjw7lOVTzW',
+      pro:  'https://checkout.dodopayments.com/buy/pdt_0NgilRTE6D0F9Hgz9Qi7z',
     };
+
+    // ── Build Dodo URL keeping square brackets literal (Dodo requires this) ─
+    function dodoUrl(base, userId, email) {
+      let url = `${base}?quantity=1&metadata[user_id]=${encodeURIComponent(userId)}`;
+      if (email) url += `&checkout[email]=${encodeURIComponent(email)}`;
+      url += `&redirect_url=${encodeURIComponent('https://www.getquotechase.com/dashboard/index.html')}`;
+      return url;
+    }
 
     const errorMsg = document.getElementById('error-msg');
 
@@ -279,18 +286,17 @@
         const session = await getSession();
         if (!session) {
           window.location.href = '/auth/login.html';
-          throw new Error('no session');
+          return;
         }
 
         const userId = session.user.id;
+        const email  = session.user.email;
 
-        // Wire up plan buttons — append user ID so Dodo can attach the subscription
-        document.getElementById('btn-solo').href = `${DODO_LINKS.solo}?metadata[user_id]=${userId}`;
-        document.getElementById('btn-crew').href = `${DODO_LINKS.crew}?metadata[user_id]=${userId}`;
-        document.getElementById('btn-pro').href  = `${DODO_LINKS.pro}?metadata[user_id]=${userId}`;
+        document.getElementById('btn-solo').href = dodoUrl(DODO_BASE.solo, userId, email);
+        document.getElementById('btn-crew').href = dodoUrl(DODO_BASE.crew, userId, email);
+        document.getElementById('btn-pro').href  = dodoUrl(DODO_BASE.pro,  userId, email);
 
       } catch (err) {
-        if (err.message === 'no session') return;
         errorMsg.textContent = 'Something went wrong. Please refresh.';
         errorMsg.classList.add('visible');
       }

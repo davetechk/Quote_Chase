@@ -217,20 +217,19 @@
 
     trackVisit('/dashboard/settings');
 
-    // ── Dodo checkout base links ───────────────────────────────────────────
-    const DODO_LINKS = {
+    // ── Dodo base URLs — no query params here, built in dodoUrl() below ────
+    const DODO_BASE = {
       solo: 'https://checkout.dodopayments.com/buy/pdt_0NgijtDsudaDD1tf3AQZC',
       crew: 'https://checkout.dodopayments.com/buy/pdt_0Ngil7HrWjMqjw7lOVTzW',
       pro:  'https://checkout.dodopayments.com/buy/pdt_0NgilRTE6D0F9Hgz9Qi7z',
     };
 
-    // ── Build a Dodo checkout URL properly (handles encoding correctly) ────
+    // ── Build Dodo URL keeping square brackets literal (Dodo requires this) ─
     function dodoUrl(base, userId, email) {
-      const url = new URL(base);
-      url.searchParams.set('quantity', '1');
-      url.searchParams.set('metadata[user_id]', userId);
-      if (email) url.searchParams.set('checkout[email]', email);
-      return url.toString();
+      let url = `${base}?quantity=1&metadata[user_id]=${encodeURIComponent(userId)}`;
+      if (email) url += `&checkout[email]=${encodeURIComponent(email)}`;
+      url += `&redirect_url=${encodeURIComponent('https://www.getquotechase.com/dashboard/index.html')}`;
+      return url;
     }
 
     // Default follow-up messages (fallback if none saved)
@@ -312,13 +311,13 @@
         document.getElementById(planMap[profile.plan])?.classList.add('billing-plan--current');
       }
 
-      // Action buttons — URLs built properly using new URL() to handle encoding
+      // Action buttons
       const actionsEl = document.getElementById('billing-actions');
       if (profile.subscription_status !== 'active') {
         actionsEl.innerHTML = `
-          <a href="${dodoUrl(DODO_LINKS.solo, userId, userEmail)}" class="btn btn--primary">Upgrade to Solo — £29/mo</a>
-          <a href="${dodoUrl(DODO_LINKS.crew, userId, userEmail)}" class="btn btn--ghost">Crew — £59/mo</a>
-          <a href="${dodoUrl(DODO_LINKS.pro,  userId, userEmail)}" class="btn btn--ghost">Pro — £99/mo</a>
+          <a href="${dodoUrl(DODO_BASE.solo, userId, userEmail)}" class="btn btn--primary">Upgrade to Solo — £29/mo</a>
+          <a href="${dodoUrl(DODO_BASE.crew, userId, userEmail)}" class="btn btn--ghost">Crew — £59/mo</a>
+          <a href="${dodoUrl(DODO_BASE.pro,  userId, userEmail)}" class="btn btn--ghost">Pro — £99/mo</a>
         `;
       } else {
         actionsEl.innerHTML = `
