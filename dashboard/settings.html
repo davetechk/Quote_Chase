@@ -217,12 +217,21 @@
 
     trackVisit('/dashboard/settings');
 
-    // ── Dodo checkout links (replace with real product IDs) ───────────────
+    // ── Dodo checkout base links ───────────────────────────────────────────
     const DODO_LINKS = {
       solo: 'https://checkout.dodopayments.com/buy/pdt_0NgijtDsudaDD1tf3AQZC',
       crew: 'https://checkout.dodopayments.com/buy/pdt_0Ngil7HrWjMqjw7lOVTzW',
       pro:  'https://checkout.dodopayments.com/buy/pdt_0NgilRTE6D0F9Hgz9Qi7z',
     };
+
+    // ── Build a Dodo checkout URL properly (handles encoding correctly) ────
+    function dodoUrl(base, userId, email) {
+      const url = new URL(base);
+      url.searchParams.set('quantity', '1');
+      url.searchParams.set('metadata[user_id]', userId);
+      if (email) url.searchParams.set('checkout[email]', email);
+      return url.toString();
+    }
 
     // Default follow-up messages (fallback if none saved)
     const DEFAULT_MESSAGES = {
@@ -271,7 +280,7 @@
     }
 
     // ── Render billing section ─────────────────────────────────────────────
-    function renderBilling(profile, userId) {
+    function renderBilling(profile, userId, userEmail) {
       const label = getPlanLabel(profile);
       document.getElementById('current-plan-name').textContent = label;
 
@@ -303,13 +312,13 @@
         document.getElementById(planMap[profile.plan])?.classList.add('billing-plan--current');
       }
 
-      // Action buttons
+      // Action buttons — URLs built properly using new URL() to handle encoding
       const actionsEl = document.getElementById('billing-actions');
       if (profile.subscription_status !== 'active') {
         actionsEl.innerHTML = `
-          <a href="${DODO_LINKS.solo}&metadata[user_id]=${userId}" class="btn btn--primary">Upgrade to Solo — £29/mo</a>
-          <a href="${DODO_LINKS.crew}&metadata[user_id]=${userId}" class="btn btn--ghost">Crew — £59/mo</a>
-          <a href="${DODO_LINKS.pro}&metadata[user_id]=${userId}"  class="btn btn--ghost">Pro — £99/mo</a>
+          <a href="${dodoUrl(DODO_LINKS.solo, userId, userEmail)}" class="btn btn--primary">Upgrade to Solo — £29/mo</a>
+          <a href="${dodoUrl(DODO_LINKS.crew, userId, userEmail)}" class="btn btn--ghost">Crew — £59/mo</a>
+          <a href="${dodoUrl(DODO_LINKS.pro,  userId, userEmail)}" class="btn btn--ghost">Pro — £99/mo</a>
         `;
       } else {
         actionsEl.innerHTML = `
@@ -384,8 +393,6 @@
       const doubleConfirm = confirm('Last chance — this is permanent. Delete account?');
       if (!doubleConfirm) return;
 
-      // Delete quotes, then profile, then sign out
-      // Note: In production, wire this to a server-side function so auth user is also removed
       await supabase.from('quotes').delete().eq('business_id', currentProfile.id);
       await supabase.from('profiles').delete().eq('id', currentProfile.id);
       await signOut();
@@ -407,10 +414,9 @@
 
       currentProfile = profile;
       renderSidebar(profile, 'settings');
-      // No paywall on settings — always accessible
       populateProfile(profile);
       populateMessages(profile);
-      renderBilling(profile, session.user.id);
+      renderBilling(profile, session.user.id, session.user.email);
 
       // Scroll to billing if hash is #billing
       if (window.location.hash === '#billing') {
@@ -426,4 +432,3 @@
   </script>
 </body>
 </html>
-
