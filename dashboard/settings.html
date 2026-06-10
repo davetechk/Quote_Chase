@@ -307,9 +307,9 @@
       const actionsEl = document.getElementById('billing-actions');
       if (profile.subscription_status !== 'active') {
         actionsEl.innerHTML = `
-          <a href="${DODO_LINKS.solo}?metadata[user_id]=${userId}" class="btn btn--primary">Upgrade to Solo — £29/mo</a>
-          <a href="${DODO_LINKS.crew}?metadata[user_id]=${userId}" class="btn btn--ghost">Crew — £59/mo</a>
-          <a href="${DODO_LINKS.pro}?metadata[user_id]=${userId}"  class="btn btn--ghost">Pro — £99/mo</a>
+          <a href="${DODO_LINKS.solo}&metadata[user_id]=${userId}" class="btn btn--primary">Upgrade to Solo — £29/mo</a>
+          <a href="${DODO_LINKS.crew}&metadata[user_id]=${userId}" class="btn btn--ghost">Crew — £59/mo</a>
+          <a href="${DODO_LINKS.pro}&metadata[user_id]=${userId}"  class="btn btn--ghost">Pro — £99/mo</a>
         `;
       } else {
         actionsEl.innerHTML = `
