@@ -83,7 +83,7 @@ export function showPaywall() {
           View Plans &amp; Upgrade
         </a>
       </div>
-      <p class="paywall-sub">Questions? Email <a href="mailto:hello@getquotechase.com">hello@getquotechase.com</a></p>
+      <p class="paywall-sub">Questions? Email <a href="mailto:quotechase@getquotechase.com">quotechase@getquotechase.com</a></p>
     </div>
   `;
   document.body.appendChild(overlay);
