@@ -160,12 +160,12 @@
 
         return `
           <tr>
-            <td>${sanitize(q.customer_name)}</td>
-            <td style="max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${sanitize(q.job_description)}</td>
-            <td style="white-space:nowrap;font-weight:700;color:var(--text);">${formatMoney(q.quote_amount, currentProfile.country)}</td>
-            <td>${statusBadge(q.status)}</td>
-            <td style="white-space:nowrap;color:var(--text-3);">${formatDate(q.created_at)}</td>
-            <td>${actions}</td>
+            <td data-label="Customer">${sanitize(q.customer_name)}</td>
+            <td data-label="Job" style="max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${sanitize(q.job_description)}</td>
+            <td data-label="Amount" style="white-space:nowrap;font-weight:700;color:var(--text);">${formatMoney(q.quote_amount, currentProfile.country)}</td>
+            <td data-label="Status">${statusBadge(q.status)}</td>
+            <td data-label="Sent" style="white-space:nowrap;color:var(--text-3);">${formatDate(q.created_at)}</td>
+            <td data-label="Actions">${actions}</td>
           </tr>`;
       }).join('');
     }

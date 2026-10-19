@@ -84,7 +84,7 @@
             </div>
           </div>
 
-          <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:28px;">
+          <div class="form-actions" style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:28px;">
             <button class="btn btn--primary" id="submit-btn" type="button">
               <span id="btn-text">Send quote &amp; start follow-ups</span>
               <span class="spinner" id="spinner"></span>
@@ -103,6 +103,17 @@
   </div>
 
   <style>
+    @media (max-width: 640px) {
+      .form-actions {
+        position: sticky;
+        bottom: 0;
+        z-index: 10;
+        background: var(--bg-2);
+        padding: 12px 0 calc(12px + env(safe-area-inset-bottom));
+      }
+      .form-actions #submit-btn { flex: 1; }
+      .form-actions .btn--ghost { display: none; } /* keep the sticky bar one row */
+    }
     .quote-preview { margin-top: 24px; }
     .quote-preview__label {
       font-size: 0.75rem;

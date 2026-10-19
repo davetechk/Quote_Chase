@@ -18,6 +18,7 @@
   top: 0;
   left: 0;
   height: 100vh;
+  height: 100dvh;
   z-index: 200;
   transition: transform 0.25s ease;
   overflow-y: auto;
@@ -195,7 +196,11 @@
   margin-bottom: 32px;
 }
 @media (max-width: 900px) { .stats-grid { grid-template-columns: repeat(2, 1fr); } }
-@media (max-width: 480px) { .stats-grid { grid-template-columns: 1fr; } }
+@media (max-width: 480px) {
+  .stats-grid { gap: 10px; margin-bottom: 20px; }
+  .stat-card { padding: 14px; }
+  .stat-card__value { font-size: 1.5rem; }
+}
 
 .stat-card {
   background: var(--bg-2);
@@ -406,6 +411,7 @@ tbody td:first-child { color: var(--text); font-weight: 600; }
   overflow-y: auto;
   animation: fadeUp 0.25s ease;
 }
+@media (max-width: 480px) { .modal { padding: 20px; } }
 .modal__header {
   display: flex;
   align-items: flex-start;
@@ -463,7 +469,7 @@ tbody td:first-child { color: var(--text); font-weight: 600; }
   font-size: 0.85rem;
   flex-wrap: wrap;
 }
-@media (max-width: 768px) { .trial-banner { padding: 10px 16px; } }
+@media (max-width: 768px) { .trial-banner { padding: 10px 16px 10px 64px; } }
 .trial-banner__text { color: var(--text-2); }
 .trial-banner__text strong { color: var(--orange); }
 .trial-banner__cta {
@@ -477,3 +483,38 @@ tbody td:first-child { color: var(--text); font-weight: 600; }
   transition: background var(--transition);
 }
 .trial-banner__cta:hover { background: var(--orange-hover); }
+
+/* ─── Mobile: inputs, tap targets, quote cards ──────────────────────────────── */
+@media (max-width: 768px) {
+  input, select, textarea { font-size: 16px !important; } /* stops iOS zoom on focus */
+  .action-btn { min-height: 44px; }
+}
+@media (max-width: 640px) {
+  .table-container table,
+  .table-container tbody,
+  .table-container tr,
+  .table-container td { display: block; }
+  .table-container thead { display: none; }
+  .table-container tbody tr { padding: 12px 16px; }
+  .table-container tbody td {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 4px 0;
+    max-width: none !important;
+    white-space: normal !important;
+  }
+  .table-container td[data-label]::before {
+    content: attr(data-label);
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-3);
+  }
+  .table-container td[data-label="Actions"] { display: block; padding-top: 10px; }
+  .table-container td[data-label="Actions"]::before { content: none; }
+  .table-container td[data-label="Actions"] > div { gap: 8px !important; }
+  .table-container td[data-label="Actions"] .action-btn { flex: 1; }
+  .table-container .table-empty { display: block; }
+}

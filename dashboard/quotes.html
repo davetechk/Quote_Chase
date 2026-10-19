@@ -188,13 +188,13 @@
 
         return `
           <tr style="cursor:pointer;" data-id="${q.id}">
-            <td>${sanitize(q.customer_name)}</td>
-            <td style="max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${sanitize(q.job_description)}</td>
-            <td class="quote-amount-col">${formatMoney(q.quote_amount, currentProfile.country)}</td>
-            <td>${followupDots(q)}</td>
-            <td>${statusBadge(q.status)}</td>
-            <td style="color:var(--text-3);white-space:nowrap;">${formatDate(q.created_at)}</td>
-            <td>${actions}</td>
+            <td data-label="Customer">${sanitize(q.customer_name)}</td>
+            <td data-label="Job" style="max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${sanitize(q.job_description)}</td>
+            <td data-label="Amount" class="quote-amount-col">${formatMoney(q.quote_amount, currentProfile.country)}</td>
+            <td data-label="Follow-ups">${followupDots(q)}</td>
+            <td data-label="Status">${statusBadge(q.status)}</td>
+            <td data-label="Sent" style="color:var(--text-3);white-space:nowrap;">${formatDate(q.created_at)}</td>
+            <td data-label="Actions">${actions}</td>
           </tr>`;
       }).join('');
     }
