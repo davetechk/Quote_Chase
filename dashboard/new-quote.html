@@ -59,6 +59,7 @@
               </label>
               <input class="form-input" type="tel" id="customer-phone"
                      placeholder="+44 7700 900000" />
+              <p class="form-hint">SMS notifications may be sent if a phone number is provided.</p>
             </div>
 
             <div class="form-group span-2">
@@ -137,18 +138,6 @@
 
     trackVisit('/dashboard/new-quote');
 
-    const EDGE_URL = `${window.__SUPABASE_URL__ || ''}/functions/v1/send-message`;
-
-    // Read supabase URL from the client (it's set in supabase.js)
-    // We'll derive it from the Supabase client instead
-    async function getEdgeUrl() {
-      // Import the raw URL — easier to just hardcode base path pattern
-      // The Edge Function URL is: https://<project-ref>.supabase.co/functions/v1/send-message
-      // We pull it from the Supabase client's REST URL
-      const { data } = await supabase.auth.getSession();
-      return data; // just a warmup; URL is configured below
-    }
-
     const customerNameInput  = document.getElementById('customer-name');
     const quoteAmountInput   = document.getElementById('quote-amount');
     const customerEmailInput = document.getElementById('customer-email');
@@ -157,7 +146,6 @@
     const submitBtn          = document.getElementById('submit-btn');
     const btnText            = document.getElementById('btn-text');
     const spinner            = document.getElementById('spinner');
-    const smsConsentCheckbox = document.getElementById('sms-consent');
     const errorMsg           = document.getElementById('error-msg');
     const successMsg         = document.getElementById('success-msg');
     const quotaWarn          = document.getElementById('quota-warn');
@@ -226,10 +214,6 @@
         showError('Please fill in all required fields.');
         return;
       }
-      if (!smsConsentCheckbox.checked) {
-        showError('Please confirm consent for SMS follow-up reminders before sending this quote.');
-        return;
-      }
       if (isNaN(Number(quoteAmount)) || Number(quoteAmount) <= 0) {
         showError('Please enter a valid quote amount.');
         return;
@@ -262,12 +246,6 @@
           .single();
 
         if (insertError) throw insertError;
-
-        // 2. Increment monthly usage counter
-        await supabase
-          .from('profiles')
-          .update({ quotes_used_this_month: used + 1 })
-          .eq('id', currentProfile.id);
 
         // 3. Trigger send-message Edge Function (ONE fetch, no duplicate)
         const { data: sessionData } = await supabase.auth.getSession();
@@ -311,7 +289,6 @@
         customerEmailInput.value = '';
         customerPhoneInput.value = '';
         jobDescInput.value       = '';
-        smsConsentCheckbox.checked = false;
         quotePreview.style.display = 'none';
 
         // Redirect to all quotes after 2s

@@ -159,19 +159,10 @@
         }
 
         // 2. Create the profile row
-        const trialEnd = new Date();
-        trialEnd.setDate(trialEnd.getDate() + 14);
-
         const { error: profileError } = await supabase.from('profiles').insert({
           user_id:             userId,
           business_name:       businessName,
           owner_name:          ownerName,
-          trade:               'roofer',
-          plan:                'free',
-          subscription_status: 'trial',
-          trial_ends_at:       trialEnd.toISOString(),
-          quotes_used_this_month: 0,
-          quote_limit:         0,
         });
 
         if (profileError) throw profileError;

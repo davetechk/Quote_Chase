@@ -130,33 +130,6 @@
       margin-bottom: 48px;
     }
 
-    .hero__social-proof {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      font-size: 0.825rem;
-      color: var(--text-3);
-    }
-    .hero__social-proof-avatars {
-      display: flex;
-      margin-right: 4px;
-    }
-    .hero__avatar {
-      width: 28px; height: 28px;
-      border-radius: 50%;
-      border: 2px solid var(--bg);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 0.7rem;
-      font-weight: 700;
-      margin-left: -8px;
-    }
-    .hero__avatar:first-child { margin-left: 0; }
-    .hero__avatar--1 { background: #FF7A00; color: #fff; }
-    .hero__avatar--2 { background: #16A34A; color: #fff; }
-    .hero__avatar--3 { background: #2563EB; color: #fff; }
-
     /* ── Hero card (right side) ───────────────────────────────────────────── */
     .hero-card {
       background: var(--bg-2);
@@ -522,7 +495,7 @@
         <div class="nav__links">
           <a href="#how-it-works" class="btn btn--ghost btn--sm" style="display:none;" id="nav-how">How it works</a>
           <a href="#pricing" class="btn btn--ghost btn--sm">Pricing</a>
-          <a href="/auth/login.html" class="btn btn--ghost btn--sm">Sign in</a>
+          <a href="/auth/login.html" class="btn btn--ghost btn--sm nav__signin">Sign in</a>
           <a href="/auth/signup.html" class="btn btn--primary btn--sm">Start free trial</a>
         </div>
       </div>
@@ -553,14 +526,6 @@
           <div class="hero__cta">
             <a href="/auth/signup.html" class="btn btn--primary btn--lg">Start free trial — 14 days free</a>
             <a href="#how-it-works" class="btn btn--ghost btn--lg">See how it works</a>
-          </div>
-          <div class="hero__social-proof">
-            <div class="hero__social-proof-avatars">
-              <div class="hero__avatar hero__avatar--1">JS</div>
-              <div class="hero__avatar hero__avatar--2">MR</div>
-              <div class="hero__avatar hero__avatar--3">PK</div>
-            </div>
-            Trusted by service businesses winning more clients every week
           </div>
         </div>
 
@@ -940,26 +905,9 @@
   <!-- ── Testimonials ───────────────────────────────────────────────────────── -->
   <section class="testimonials-section">
     <div class="container">
-      <div class="section-head section-head--center">
-        <div class="section-label">From businesses using QuoteChase</div>
-        <h2 class="section-title">They stopped losing clients<br/>to silence.</h2>
-      </div>
-      <div class="testimonials-grid">
-        <div class="testimonial">
-          <div class="testimonial__quote">"I used to follow up on maybe 2 or 3 quotes. Now every single one gets chased automatically. Won a £6,500 contract last week that I'd totally forgotten about."</div>
-          <div class="testimonial__author">James S.</div>
-          <div class="testimonial__role">Contracting Specialist, Manchester</div>
-        </div>
-        <div class="testimonial">
-          <div class="testimonial__quote">"Takes me 30 seconds to add a quote. The follow-ups just go out. It's the best £29 I spend every month — made that back three times over in the first week."</div>
-          <div class="testimonial__author">Mike R.</div>
-          <div class="testimonial__role">Managing Consultant, Birmingham</div>
-        </div>
-        <div class="testimonial">
-          <div class="testimonial__quote">"Clients actually comment on how professional and on-the-ball I seem. Meanwhile I'm just getting on with the work. Brilliant."</div>
-          <div class="testimonial__author">Paul K.</div>
-          <div class="testimonial__role">Creative Director, Leeds</div>
-        </div>
+      <div class="section-head section-head--center" style="margin-bottom:0;">
+        <h2 class="section-title">Real results, coming soon.</h2>
+        <p class="section-sub">We're in early access. Testimonials from real contractors will appear here as they start winning more jobs.</p>
       </div>
     </div>
   </section>

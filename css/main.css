@@ -158,7 +158,7 @@ p  { color: var(--text-2); }
 }
 
 @media (max-width: 600px) {
-  .nav__links .btn--ghost { display: none; }
+  .nav__links .btn--ghost:not(.nav__signin) { display: none; }
 }
 
 /* ─── Hero ─────────────────────────────────────────────────────────────────── */
