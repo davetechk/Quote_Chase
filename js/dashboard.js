@@ -101,6 +101,14 @@ export function showPaywall() {
   document.body.appendChild(overlay);
 }
 
+// ─── Install prompt (captured early; shown in the sidebar) ───────────────────
+let installEvent = null;
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  installEvent = e;
+  document.getElementById('install-btn')?.removeAttribute('hidden');
+});
+
 // ─── Render sidebar ──────────────────────────────────────────────────────────
 export function renderSidebar(profile, activePage) {
   const label = getPlanLabel(profile);
@@ -141,6 +149,8 @@ export function renderSidebar(profile, activePage) {
           <div class="sidebar-user__name">${name}</div>
           <div class="sidebar-user__plan">${sanitize(label)}</div>
         </div>
+        <button class="sidebar-install" id="install-btn" type="button" hidden>Install app</button>
+        <p class="sidebar-install-hint" id="install-hint" hidden>Install: tap Share → Add to Home Screen</p>
         <button class="sidebar-signout" id="signout-btn" type="button">Sign out</button>
       </div>
     </aside>
@@ -162,6 +172,17 @@ export function renderSidebar(profile, activePage) {
 
   // Sign out button
   document.getElementById('signout-btn')?.addEventListener('click', () => signOut());
+
+  // Install app: Chrome/Android prompt, or a hint on iOS Safari; nothing once installed
+  const installBtn = document.getElementById('install-btn');
+  const standalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone;
+  if (installEvent && !standalone) installBtn.hidden = false;
+  if (/iphone|ipad|ipod/i.test(navigator.userAgent) && !standalone) document.getElementById('install-hint').hidden = false;
+  installBtn.addEventListener('click', async () => {
+    installBtn.hidden = true;
+    await installEvent?.prompt();
+    installEvent = null;
+  });
 
   // Mobile toggle
   const toggle = document.getElementById('sidebar-toggle');

@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Offline — QuoteChase</title>
+  <link rel="stylesheet" href="/css/main.css" />
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#0F1117">
+  <link rel="icon" href="/icons/favicon-32.png" type="image/png">
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+</head>
+<body style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;text-align:center;">
+  <div>
+    <img src="/icons/icon-192.png" alt="" width="64" height="64" style="border-radius:16px;margin:0 auto 20px;">
+    <h1 style="font-size:1.4rem;margin-bottom:8px;">You're offline</h1>
+    <p style="color:var(--text-3);margin-bottom:24px;">Reconnect to see your quotes.</p>
+    <button class="btn btn--primary" type="button" onclick="location.reload()">Retry</button>
+  </div>
+</body>
+</html>
