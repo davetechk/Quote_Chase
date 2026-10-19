@@ -210,11 +210,6 @@
       const session = await requireAuth();
       const profile = await getProfile(session.user.id);
 
-      if (!profile) {
-        window.location.href = '/auth/login.html';
-        throw new Error('no profile');
-      }
-
       const userEmail = session.user.email || '';
       if (!ADMIN_EMAILS.includes(userEmail.toLowerCase())) {
         document.getElementById('access-denied').style.display = 'flex';

@@ -84,7 +84,6 @@
   </div>
 
   <script type="module">
-    import { supabase } from '/js/supabase.js';
     import { signUp, getSession } from '/js/auth.js';
     import { trackVisit } from '/js/tracker.js';
 
@@ -147,27 +146,16 @@
 
       setLoading(true);
       try {
-        // 1. Create the auth user
-        const authData = await signUp(email, password);
-        const userId = authData?.user?.id;
+        // The database creates the profile row from this metadata
+        const authData = await signUp(email, password, { business_name: businessName, owner_name: ownerName });
 
-        if (!userId) {
-          // Supabase may require email confirmation — handle gracefully
+        if (!authData?.session) {
+          // Email confirmation is on — no session until they confirm
           showSuccess('Account created! Check your inbox to confirm your email, then sign in.');
           setLoading(false);
           return;
         }
 
-        // 2. Create the profile row
-        const { error: profileError } = await supabase.from('profiles').insert({
-          user_id:             userId,
-          business_name:       businessName,
-          owner_name:          ownerName,
-        });
-
-        if (profileError) throw profileError;
-
-        // 3. Send to onboarding to pick a plan
         window.location.href = '/auth/onboarding.html';
 
       } catch (err) {

@@ -28,8 +28,12 @@ export async function getProfile(userId) {
     .from('profiles')
     .select('*')
     .eq('user_id', userId)
-    .single();
+    .maybeSingle();
   if (error) throw error;
+  if (!data) {
+    document.body.innerHTML = `<p style="padding:24px">We couldn't load your account. Please contact <a href="mailto:hello@getquotechase.com">hello@getquotechase.com</a></p>`;
+    throw new Error('no profile');
+  }
   return data;
 }
 

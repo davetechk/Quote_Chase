@@ -309,11 +309,6 @@
       const session = await requireAuth();
       const profile = await getProfile(session.user.id);
 
-      if (!profile) {
-        window.location.href = '/auth/login.html';
-        throw new Error('no profile');
-      }
-
       currentProfile = profile;
       renderSidebar(profile, 'new-quote');
 
