@@ -37,6 +37,14 @@ export async function getProfile(userId) {
   return data;
 }
 
+// ─── Money in the account's currency (GB → £, US → $) ───────────────────────
+export function formatMoney(amount, country) {
+  const us = country === 'US';
+  return new Intl.NumberFormat(us ? 'en-US' : 'en-GB', {
+    style: 'currency', currency: us ? 'USD' : 'GBP', minimumFractionDigits: 0, maximumFractionDigits: 0,
+  }).format(Number(amount) || 0);
+}
+
 // ─── Access check (trial or active subscription) ────────────────────────────
 export function hasAccess(profile) {
   if (!profile) return false;

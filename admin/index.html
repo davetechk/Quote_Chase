@@ -116,7 +116,7 @@
       return new Date(iso).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
     }
     function formatMoney(n) {
-      return '$' + Number(n).toLocaleString('en-US', { minimumFractionDigits: 0 });
+      return '£' + Number(n).toLocaleString('en-GB', { minimumFractionDigits: 0 });
     }
     function statusBadge(s) {
       const m = { sent:'<span class="badge badge--sent">Sent</span>', followup:'<span class="badge badge--followup">Following Up</span>', won:'<span class="badge badge--won">Won</span>', lost:'<span class="badge badge--lost">Lost</span>' };

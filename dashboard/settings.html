@@ -103,6 +103,14 @@
             </select>
           </div>
 
+          <div class="form-group">
+            <label class="form-label" for="country">Country</label>
+            <select class="form-input" id="country">
+              <option value="GB">United Kingdom</option>
+              <option value="US">United States</option>
+            </select>
+          </div>
+
           <button class="btn btn--primary" id="save-profile-btn" type="button">
             <span id="profile-btn-text">Save changes</span>
             <span class="spinner" id="profile-spinner"></span>
@@ -261,6 +269,7 @@
       document.getElementById('business-name').value = profile.business_name || '';
       document.getElementById('owner-name').value    = profile.owner_name    || '';
       document.getElementById('trade').value         = profile.trade         || 'roofer';
+      document.getElementById('country').value       = profile.country       || 'GB';
     }
 
     // ── Populate follow-up messages ────────────────────────────────────────
@@ -335,6 +344,7 @@
       const businessName = document.getElementById('business-name').value.trim();
       const ownerName    = document.getElementById('owner-name').value.trim();
       const trade        = document.getElementById('trade').value;
+      const country      = document.getElementById('country').value;
 
       if (!businessName || !ownerName) {
         showAlert('profile-error', 'Business name and your name are required.');
@@ -344,7 +354,7 @@
 
       const { error } = await supabase
         .from('profiles')
-        .update({ business_name: businessName, owner_name: ownerName, trade })
+        .update({ business_name: businessName, owner_name: ownerName, trade, country })
         .eq('id', currentProfile.id);
 
       if (error) {
@@ -353,6 +363,7 @@
         currentProfile.business_name = businessName;
         currentProfile.owner_name    = ownerName;
         currentProfile.trade         = trade;
+        currentProfile.country       = country;
         showAlert('profile-success', 'Profile saved.');
       }
       setLoading('save-profile-btn', 'profile-btn-text', 'profile-spinner', false, 'Save changes');

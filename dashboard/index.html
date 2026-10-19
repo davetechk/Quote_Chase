@@ -99,7 +99,7 @@
   <script type="module">
     import { supabase }                                          from '/js/supabase.js';
     import { requireAuth, getProfile, renderSidebar,
-             hasAccess, showPaywall, sanitize }                  from '/js/dashboard.js';
+             hasAccess, showPaywall, sanitize, formatMoney }     from '/js/dashboard.js';
     import { trackVisit }                                        from '/js/tracker.js';
 
     trackVisit('/dashboard');
@@ -114,11 +114,6 @@
         replied:   '<span class="badge badge--replied">Replied</span>',
       };
       return map[status] || `<span class="badge badge--sent">${sanitize(status)}</span>`;
-    }
-
-    // ── Format currency ──────────────────────────────────────────────────────
-    function formatGBP(amount) {
-      return '£' + Number(amount).toLocaleString('en-GB', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
     }
 
     // ── Format date ──────────────────────────────────────────────────────────
@@ -167,7 +162,7 @@
           <tr>
             <td>${sanitize(q.customer_name)}</td>
             <td style="max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${sanitize(q.job_description)}</td>
-            <td style="white-space:nowrap;font-weight:700;color:var(--text);">${formatGBP(q.quote_amount)}</td>
+            <td style="white-space:nowrap;font-weight:700;color:var(--text);">${formatMoney(q.quote_amount, currentProfile.country)}</td>
             <td>${statusBadge(q.status)}</td>
             <td style="white-space:nowrap;color:var(--text-3);">${formatDate(q.created_at)}</td>
             <td>${actions}</td>
@@ -187,7 +182,7 @@
       document.getElementById('stat-total').textContent   = total;
       document.getElementById('stat-followup').textContent = followup;
       document.getElementById('stat-won').textContent     = won;
-      document.getElementById('stat-value').textContent   = formatGBP(openVal);
+      document.getElementById('stat-value').textContent   = formatMoney(openVal, currentProfile.country);
     }
 
     // ── Trial banner ─────────────────────────────────────────────────────────

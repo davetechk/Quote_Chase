@@ -41,7 +41,7 @@
             </div>
 
             <div class="form-group">
-              <label class="form-label" for="quote-amount">Quote amount (£) <span style="color:var(--red)">*</span></label>
+              <label class="form-label" for="quote-amount">Quote amount (<span id="currency-symbol">£</span>) <span style="color:var(--red)">*</span></label>
               <input class="form-input" type="number" id="quote-amount"
                      placeholder="4500" min="1" step="any" required />
             </div>
@@ -133,7 +133,7 @@
   <script type="module">
     import { supabase, SUPABASE_URL }                            from '/js/supabase.js';
     import { requireAuth, getProfile, renderSidebar,
-             hasAccess, showPaywall, sanitize }                  from '/js/dashboard.js';
+             hasAccess, showPaywall, sanitize, formatMoney }     from '/js/dashboard.js';
     import { trackVisit }                                        from '/js/tracker.js';
 
     trackVisit('/dashboard/new-quote');
@@ -184,7 +184,7 @@
       document.getElementById('preview-business').textContent =
         currentProfile?.business_name || 'Your Business';
       document.getElementById('preview-amount').textContent =
-        amount ? '£' + Number(amount).toLocaleString('en-GB') : '';
+        amount ? formatMoney(amount, currentProfile?.country) : '';
       document.getElementById('preview-job').textContent = job || '—';
     }
 
@@ -311,6 +311,7 @@
 
       currentProfile = profile;
       renderSidebar(profile, 'new-quote');
+      document.getElementById('currency-symbol').textContent = profile.country === 'US' ? '$' : '£';
 
       if (!hasAccess(profile)) {
         showPaywall();
