@@ -111,6 +111,7 @@
         followup:  '<span class="badge badge--followup">Following Up</span>',
         won:       '<span class="badge badge--won">Won</span>',
         lost:      '<span class="badge badge--lost">Lost</span>',
+        replied:   '<span class="badge badge--replied">Replied</span>',
       };
       return map[status] || `<span class="badge badge--sent">${sanitize(status)}</span>`;
     }
@@ -127,13 +128,10 @@
 
     // ── Update quote status ──────────────────────────────────────────────────
     async function updateStatus(quoteId, newStatus) {
-      const updates = { status: newStatus };
-      if (newStatus === 'won' || newStatus === 'lost') {
-        updates.customer_replied = true;
-      }
+      // Won, Lost and Replied all mean the customer answered — stop follow-ups
       const { error } = await supabase
         .from('quotes')
-        .update(updates)
+        .update({ status: newStatus, customer_replied: true })
         .eq('id', quoteId);
       if (error) {
         document.getElementById('error-msg').textContent = 'Failed to update status. Please try again.';
@@ -162,7 +160,7 @@
           <div style="display:flex;gap:6px;flex-wrap:wrap;">
             <button class="action-btn action-btn--won"   data-id="${q.id}" data-action="won">Won</button>
             <button class="action-btn action-btn--lost"  data-id="${q.id}" data-action="lost">Lost</button>
-            <button class="action-btn action-btn--reply" data-id="${q.id}" data-action="followup">Replied</button>
+            ${q.status !== 'replied' ? `<button class="action-btn action-btn--reply" data-id="${q.id}" data-action="replied">Replied</button>` : ''}
           </div>` : '<span class="text-muted text-xs">—</span>';
 
         return `
@@ -183,7 +181,7 @@
       const followup = quotes.filter(q => q.status === 'sent' || q.status === 'followup').length;
       const won      = quotes.filter(q => q.status === 'won').length;
       const openVal  = quotes
-        .filter(q => q.status === 'sent' || q.status === 'followup')
+        .filter(q => ['sent', 'followup', 'replied'].includes(q.status))
         .reduce((sum, q) => sum + Number(q.quote_amount), 0);
 
       document.getElementById('stat-total').textContent   = total;

@@ -306,7 +306,7 @@
       document.getElementById('qc-job-desc').textContent = quote.job_description;
 
       // If already won/lost/replied, hide accept button
-      if (quote.status === 'won' || quote.customer_replied) {
+      if (quote.status === 'won') {
         document.getElementById('qc-cta').style.display = 'none';
         const accepted = document.getElementById('accepted-box');
         accepted.querySelector('.quote-accepted-title').textContent = 'Quote already accepted';

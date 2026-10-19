@@ -626,6 +626,7 @@ p  { color: var(--text-2); }
 .badge--followup  { background: var(--yellow-dim);   color: var(--yellow); border: 1px solid rgba(245,158,11,0.3); }
 .badge--won       { background: var(--green-dim);    color: var(--green);  border: 1px solid rgba(22,163,74,0.3); }
 .badge--lost      { background: var(--red-dim);      color: var(--red);    border: 1px solid rgba(220,38,38,0.3); }
+.badge--replied   { background: rgba(37,99,235,0.12); color: #60A5FA;       border: 1px solid rgba(37,99,235,0.3); }
 
 /* ─── Divider ────────────────────────────────────────────────────────────────── */
 .divider {

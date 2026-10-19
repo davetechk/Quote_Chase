@@ -58,6 +58,7 @@
             <option value="followup">Following Up</option>
             <option value="won">Won</option>
             <option value="lost">Lost</option>
+            <option value="replied">Replied</option>
           </select>
         </div>
 
@@ -119,6 +120,7 @@
         followup: '<span class="badge badge--followup">Following Up</span>',
         won:      '<span class="badge badge--won">Won ✓</span>',
         lost:     '<span class="badge badge--lost">Lost</span>',
+        replied:  '<span class="badge badge--replied">Replied</span>',
       };
       return map[status] || `<span class="badge badge--sent">${sanitize(status)}</span>`;
     }
@@ -148,13 +150,10 @@
 
     // ── Update status ─────────────────────────────────────────────────────────
     async function updateStatus(quoteId, newStatus) {
-      const updates = { status: newStatus };
-      if (newStatus === 'won' || newStatus === 'lost') {
-        updates.customer_replied = true;
-      }
+      // Won, Lost and Replied all mean the customer answered — stop follow-ups
       const { error } = await supabase
         .from('quotes')
-        .update(updates)
+        .update({ status: newStatus, customer_replied: true })
         .eq('id', quoteId);
 
       if (error) {
@@ -188,7 +187,7 @@
           <div style="display:flex;gap:5px;flex-wrap:wrap;">
             <button class="action-btn action-btn--won"  data-id="${q.id}" data-action="won">Won</button>
             <button class="action-btn action-btn--lost" data-id="${q.id}" data-action="lost">Lost</button>
-            <button class="action-btn action-btn--reply" data-id="${q.id}" data-action="followup">Replied</button>
+            ${q.status !== 'replied' ? `<button class="action-btn action-btn--reply" data-id="${q.id}" data-action="replied">Replied</button>` : ''}
           </div>` : '<span class="text-muted text-xs">Closed</span>';
 
         return `
@@ -289,7 +288,7 @@
           <div style="display:flex;gap:8px;flex-wrap:wrap;padding-top:8px;border-top:1px solid var(--border);">
             <button class="action-btn action-btn--won"  data-id="${q.id}" data-action="won">Mark Won</button>
             <button class="action-btn action-btn--lost" data-id="${q.id}" data-action="lost">Mark Lost</button>
-            <button class="action-btn action-btn--reply" data-id="${q.id}" data-action="followup">Mark Replied</button>
+            ${q.status !== 'replied' ? `<button class="action-btn action-btn--reply" data-id="${q.id}" data-action="replied">Mark Replied</button>` : ''}
           </div>` : ''}
 
         </div>`;

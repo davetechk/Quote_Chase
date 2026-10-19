@@ -151,7 +151,7 @@
       const trialUsers   = profiles?.filter(p => p.subscription_status === 'trial' && now < new Date(p.trial_ends_at)).length || 0;
       const totalQuotes  = quotes?.length || 0;
       const wonQuotes    = quotes?.filter(q => q.status === 'won').length || 0;
-      const activeQuotes = quotes?.filter(q => ['sent','followup'].includes(q.status)).length || 0;
+      const activeQuotes = quotes?.filter(q => ['sent','followup','replied'].includes(q.status)).length || 0;
       const mrr          = profiles?.filter(p => p.subscription_status === 'active').reduce((s,p) => s + (PLAN_MRR[p.plan]||0), 0) || 0;
 
       document.getElementById('s-users').textContent         = totalUsers;
