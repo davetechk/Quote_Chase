@@ -1,0 +1,5 @@
+User-agent: *
+Disallow: /dashboard/
+Disallow: /admin/
+Disallow: /quote/
+Sitemap: https://www.getquotechase.com/sitemap.xml
