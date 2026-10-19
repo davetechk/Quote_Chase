@@ -9,16 +9,6 @@
   <link rel="stylesheet" href="../css/paywall.css" />
   <link rel="icon" href="../icon.png" type="image/x-icon">
 
-<!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-VTYDGVXW89"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-
-  gtag('config', 'G-VTYDGVXW89');
-</script>
-
 
 </head>
 <body>
@@ -47,6 +37,8 @@
 
         <div class="page-title">Good to see you, <span id="owner-name">—</span> 👋</div>
         <p class="page-sub">Here's how your quotes are performing.</p>
+
+        <div class="alert alert--error" id="error-msg"></div>
 
         <!-- Stats grid -->
         <div class="stats-grid" id="stats-grid">
@@ -143,7 +135,11 @@
         .from('quotes')
         .update(updates)
         .eq('id', quoteId);
-      if (error) { alert('Failed to update status. Please try again.'); return; }
+      if (error) {
+        document.getElementById('error-msg').textContent = 'Failed to update status. Please try again.';
+        document.getElementById('error-msg').classList.add('visible');
+        return;
+      }
       await loadDashboard(currentProfile);
     }
 
@@ -164,9 +160,9 @@
         const canAct = q.status !== 'won' && q.status !== 'lost';
         const actions = canAct ? `
           <div style="display:flex;gap:6px;flex-wrap:wrap;">
-            <button class="action-btn action-btn--won"   onclick="window.__updateStatus('${q.id}','won')">Won</button>
-            <button class="action-btn action-btn--lost"  onclick="window.__updateStatus('${q.id}','lost')">Lost</button>
-            <button class="action-btn action-btn--reply" onclick="window.__updateStatus('${q.id}','followup')">Replied</button>
+            <button class="action-btn action-btn--won"   data-id="${q.id}" data-action="won">Won</button>
+            <button class="action-btn action-btn--lost"  data-id="${q.id}" data-action="lost">Lost</button>
+            <button class="action-btn action-btn--reply" data-id="${q.id}" data-action="followup">Replied</button>
           </div>` : '<span class="text-muted text-xs">—</span>';
 
         return `
@@ -241,7 +237,7 @@
       renderTrialBanner(profile);
 
       document.getElementById('owner-name').textContent =
-        sanitize(profile.owner_name || profile.business_name || 'there');
+        profile.owner_name || profile.business_name || 'there';
 
       if (!hasAccess(profile)) {
         showPaywall();
@@ -250,8 +246,10 @@
       await loadDashboard(profile);
     }
 
-    // Expose status updater to inline onclick handlers
-    window.__updateStatus = (id, status) => updateStatus(id, status);
+    document.getElementById('quotes-tbody').addEventListener('click', e => {
+      const btn = e.target.closest('[data-action]');
+      if (btn) updateStatus(btn.dataset.id, btn.dataset.action);
+    });
 
     init().catch(err => {
       if (err.message !== 'no session' && err.message !== 'no profile') console.error(err);

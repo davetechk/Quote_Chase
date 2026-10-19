@@ -8,17 +8,6 @@
 
   <link rel="icon" href="../icon.png" type="image/x-icon">
 
-
-  <!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-VTYDGVXW89"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-
-  gtag('config', 'G-VTYDGVXW89');
-</script>
-
   <style>
     body { background: var(--bg); }
 
@@ -269,16 +258,6 @@
     import { supabase } from '/js/supabase.js';
 
     // ── Helpers ────────────────────────────────────────────────────────────
-    function sanitize(str) {
-      if (!str) return '';
-      return String(str)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#x27;');
-    }
-
     function formatGBP(n) {
       return '£' + Number(n).toLocaleString('en-GB', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
     }
@@ -317,14 +296,14 @@
       const ownerName    = profile?.owner_name    || businessName;
 
       // Populate the card
-      document.getElementById('qc-business-name').textContent   = sanitize(businessName);
-      document.getElementById('qc-business-name-2').textContent = sanitize(businessName);
-      document.getElementById('qc-business-name-3').textContent = sanitize(businessName);
-      document.getElementById('qc-header-sub').textContent      = `Quote from ${sanitize(ownerName)}`;
+      document.getElementById('qc-business-name').textContent   = businessName;
+      document.getElementById('qc-business-name-2').textContent = businessName;
+      document.getElementById('qc-business-name-3').textContent = businessName;
+      document.getElementById('qc-header-sub').textContent      = `Quote from ${ownerName}`;
       document.getElementById('qc-greeting').textContent        =
-        `Hi ${sanitize(quote.customer_name)}, here is your quote from ${sanitize(businessName)}.`;
+        `Hi ${quote.customer_name}, here is your quote from ${businessName}.`;
       document.getElementById('qc-amount').textContent   = formatGBP(quote.quote_amount);
-      document.getElementById('qc-job-desc').textContent = sanitize(quote.job_description);
+      document.getElementById('qc-job-desc').textContent = quote.job_description;
 
       // If already won/lost/replied, hide accept button
       if (quote.status === 'won' || quote.customer_replied) {
@@ -332,7 +311,7 @@
         const accepted = document.getElementById('accepted-box');
         accepted.querySelector('.quote-accepted-title').textContent = 'Quote already accepted';
         accepted.querySelector('.quote-accepted-sub').textContent   =
-          `${sanitize(businessName)} has noted your acceptance and will be in touch.`;
+          `${businessName} has noted your acceptance and will be in touch.`;
         accepted.classList.add('visible');
       }
 

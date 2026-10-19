@@ -186,20 +186,20 @@
         const canAct = q.status !== 'won' && q.status !== 'lost';
         const actions = canAct ? `
           <div style="display:flex;gap:5px;flex-wrap:wrap;">
-            <button class="action-btn action-btn--won"  onclick="window.__updateStatus('${q.id}','won')">Won</button>
-            <button class="action-btn action-btn--lost" onclick="window.__updateStatus('${q.id}','lost')">Lost</button>
-            <button class="action-btn action-btn--reply" onclick="window.__updateStatus('${q.id}','followup')">Replied</button>
+            <button class="action-btn action-btn--won"  data-id="${q.id}" data-action="won">Won</button>
+            <button class="action-btn action-btn--lost" data-id="${q.id}" data-action="lost">Lost</button>
+            <button class="action-btn action-btn--reply" data-id="${q.id}" data-action="followup">Replied</button>
           </div>` : '<span class="text-muted text-xs">Closed</span>';
 
         return `
-          <tr style="cursor:pointer;" onclick="window.__openModal('${q.id}')">
+          <tr style="cursor:pointer;" data-id="${q.id}">
             <td>${sanitize(q.customer_name)}</td>
             <td style="max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${sanitize(q.job_description)}</td>
             <td class="quote-amount-col">${formatGBP(q.quote_amount)}</td>
-            <td onclick="event.stopPropagation()">${followupDots(q)}</td>
+            <td>${followupDots(q)}</td>
             <td>${statusBadge(q.status)}</td>
             <td style="color:var(--text-3);white-space:nowrap;">${formatDate(q.created_at)}</td>
-            <td onclick="event.stopPropagation()">${actions}</td>
+            <td>${actions}</td>
           </tr>`;
       }).join('');
     }
@@ -222,6 +222,12 @@
     }
 
     document.getElementById('search-input').addEventListener('input', applyFilters);
+    document.getElementById('quotes-tbody').addEventListener('click', e => {
+      const btn = e.target.closest('[data-action]');
+      if (btn) return updateStatus(btn.dataset.id, btn.dataset.action);
+      const row = e.target.closest('tr[data-id]');
+      if (row) openModal(row.dataset.id);
+    });
     document.getElementById('status-filter').addEventListener('change', applyFilters);
 
     // ── Modal ─────────────────────────────────────────────────────────────────
@@ -229,7 +235,7 @@
       const q = allQuotes.find(x => x.id === quoteId);
       if (!q) return;
 
-      document.getElementById('modal-customer-name').textContent = sanitize(q.customer_name);
+      document.getElementById('modal-customer-name').textContent = q.customer_name;
 
       const followupRows = [
         { day: 2,  sent: q.followup_2_sent  },
@@ -281,9 +287,9 @@
 
           ${q.status !== 'won' && q.status !== 'lost' ? `
           <div style="display:flex;gap:8px;flex-wrap:wrap;padding-top:8px;border-top:1px solid var(--border);">
-            <button class="action-btn action-btn--won"  onclick="window.__updateStatus('${q.id}','won');closeModal();">Mark Won</button>
-            <button class="action-btn action-btn--lost" onclick="window.__updateStatus('${q.id}','lost');closeModal();">Mark Lost</button>
-            <button class="action-btn action-btn--reply" onclick="window.__updateStatus('${q.id}','followup');closeModal();">Mark Replied</button>
+            <button class="action-btn action-btn--won"  data-id="${q.id}" data-action="won">Mark Won</button>
+            <button class="action-btn action-btn--lost" data-id="${q.id}" data-action="lost">Mark Lost</button>
+            <button class="action-btn action-btn--reply" data-id="${q.id}" data-action="followup">Mark Replied</button>
           </div>` : ''}
 
         </div>`;
@@ -296,6 +302,12 @@
     }
 
     document.getElementById('modal-close').addEventListener('click', closeModal);
+    document.getElementById('modal-body').addEventListener('click', e => {
+      const btn = e.target.closest('[data-action]');
+      if (!btn) return;
+      updateStatus(btn.dataset.id, btn.dataset.action);
+      closeModal();
+    });
     document.getElementById('detail-modal').addEventListener('click', e => {
       if (e.target === document.getElementById('detail-modal')) closeModal();
     });
@@ -333,10 +345,6 @@
 
       await loadQuotes();
     }
-
-    window.__updateStatus = (id, status) => updateStatus(id, status);
-    window.__openModal    = (id) => openModal(id);
-    window.closeModal     = closeModal;
 
     init().catch(err => {
       if (err.message !== 'no session' && err.message !== 'no profile') console.error(err);

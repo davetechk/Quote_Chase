@@ -131,7 +131,7 @@
   </style>
 
   <script type="module">
-    import { supabase }                                          from '/js/supabase.js';
+    import { supabase, SUPABASE_URL }                            from '/js/supabase.js';
     import { requireAuth, getProfile, renderSidebar,
              hasAccess, showPaywall, sanitize }                  from '/js/dashboard.js';
     import { trackVisit }                                        from '/js/tracker.js';
@@ -252,7 +252,7 @@
         const token = sessionData?.session?.access_token;
 
         const res = await fetch(
-          `${supabase.supabaseUrl}/functions/v1/send-message`,
+          `${SUPABASE_URL}/functions/v1/send-message`,
           {
             method: 'POST',
             headers: {
