@@ -37,18 +37,18 @@
             <div class="form-group">
               <label class="form-label" for="customer-name">Customer name <span style="color:var(--red)">*</span></label>
               <input class="form-input" type="text" id="customer-name"
-                     placeholder="John Smith" required />
+                     placeholder="John Smith" autocomplete="off" required />
             </div>
 
             <div class="form-group">
               <label class="form-label" for="quote-amount">Quote amount (<span id="currency-symbol">£</span>) <span style="color:var(--red)">*</span></label>
-              <input class="form-input" type="number" id="quote-amount"
+              <input class="form-input" type="number" id="quote-amount" inputmode="decimal"
                      placeholder="4500" min="1" step="any" required />
             </div>
 
             <div class="form-group">
               <label class="form-label" for="customer-email">Customer email <span style="color:var(--red)">*</span></label>
-              <input class="form-input" type="email" id="customer-email"
+              <input class="form-input" type="email" id="customer-email" inputmode="email" autocomplete="off"
                      placeholder="john@example.com" required />
             </div>
 
@@ -57,8 +57,9 @@
                 Customer phone
                 <span class="text-xs text-muted" style="font-weight:400;">(optional — for SMS)</span>
               </label>
-              <input class="form-input" type="tel" id="customer-phone"
-                     placeholder="+44 7700 900000" />
+              <input class="form-input" type="tel" id="customer-phone" inputmode="tel" autocomplete="off"
+                     placeholder="07700 900000" />
+              <p class="form-error" id="phone-error"></p>
               <p class="form-hint">SMS notifications may be sent if a phone number is provided.</p>
             </div>
 
@@ -150,6 +151,7 @@
     const successMsg         = document.getElementById('success-msg');
     const quotaWarn          = document.getElementById('quota-warn');
     const quotePreview       = document.getElementById('quote-preview');
+    const phoneError         = document.getElementById('phone-error');
 
     let currentProfile = null;
 
@@ -168,6 +170,7 @@
     function clearMessages() {
       errorMsg.classList.remove('visible');
       successMsg.classList.remove('visible');
+      phoneError.classList.remove('visible');
     }
 
     // Live preview
@@ -192,12 +195,15 @@
       el.addEventListener('input', updatePreview)
     );
 
-    // Validate UK/international phone loosely
-    function cleanPhone(raw) {
-      if (!raw) return null;
-      const digits = raw.replace(/\s+/g, '');
-      if (digits.startsWith('07')) return '+44' + digits.slice(1);
-      return digits;
+    // Normalise to E.164 for the account's country; null if invalid
+    function toE164(raw, country) {
+      const n  = raw.replace(/(?!^\+)\D/g, '');
+      const us = country === 'US';
+      if (n.startsWith('+') && !n.startsWith(us ? '+1' : '+44')) return n; // other country code: keep as-is
+      const d = n.replace('+', '');
+      const e164 = us ? (d.length === 10 ? '+1' + d : '+' + d)
+                      : (d.startsWith('0') ? '+44' + d.slice(1) : '+' + d);
+      return (us ? /^\+1\d{10}$/ : /^\+44\d{10}$/).test(e164) ? e164 : null;
     }
 
     async function handleSubmit() {
@@ -206,7 +212,8 @@
       const customerName  = customerNameInput.value.trim();
       const quoteAmount   = quoteAmountInput.value.trim();
       const customerEmail = customerEmailInput.value.trim();
-      const customerPhone = cleanPhone(customerPhoneInput.value.trim());
+      const rawPhone      = customerPhoneInput.value.trim();
+      const customerPhone = rawPhone ? toE164(rawPhone, currentProfile.country) : null;
       const jobDesc       = jobDescInput.value.trim();
 
       // Validation
@@ -216,6 +223,11 @@
       }
       if (isNaN(Number(quoteAmount)) || Number(quoteAmount) <= 0) {
         showError('Please enter a valid quote amount.');
+        return;
+      }
+      if (rawPhone && !customerPhone) {
+        phoneError.textContent = `Enter a valid ${currentProfile.country === 'US' ? 'US' : 'UK'} mobile number`;
+        phoneError.classList.add('visible');
         return;
       }
 
@@ -312,6 +324,7 @@
       currentProfile = profile;
       renderSidebar(profile, 'new-quote');
       document.getElementById('currency-symbol').textContent = profile.country === 'US' ? '$' : '£';
+      customerPhoneInput.placeholder = profile.country === 'US' ? '(202) 555-0123' : '07700 900000';
 
       if (!hasAccess(profile)) {
         showPaywall();
