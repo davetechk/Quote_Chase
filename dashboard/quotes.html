@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>All Quotes — QuoteChase</title>
+  <title>Quotes — QuoteChase</title>
   <link rel="stylesheet" href="../css/main.css" />
   <link rel="stylesheet" href="../css/dashboard.css" />
   <link rel="icon" href="/icons/favicon-32.png" type="image/png">
@@ -13,24 +13,32 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <style>
-    .quote-amount-col { font-weight: 700; color: var(--text); white-space: nowrap; }
-    .followup-progress {
-      display: flex;
-      gap: 4px;
-      align-items: center;
-    }
-    .fp-dot {
-      width: 8px; height: 8px;
-      border-radius: 50%;
-      background: var(--border-light);
-      transition: background 0.2s;
-    }
+    .followup-progress { display: flex; gap: 4px; align-items: center; }
+    .fp-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--border); }
     .fp-dot--done { background: var(--orange); }
-    .fp-dot--pending { background: var(--border); }
-    .fp-label {
-      font-size: 0.7rem;
-      color: var(--text-3);
-      margin-left: 4px;
+    .fp-label { font-size: 0.72rem; color: var(--text-3); margin-left: 6px; white-space: nowrap; }
+    .chip {
+      display: inline-block; margin-left: 6px; padding: 2px 8px; border-radius: 100px;
+      font-size: 0.7rem; font-weight: 700; background: var(--orange-dim); color: var(--orange); white-space: nowrap;
+    }
+    .cell-sub { display: block; font-size: 0.75rem; color: var(--text-3); font-weight: 400; overflow-wrap: anywhere; }
+    tr[data-id] { cursor: pointer; }
+    .detail-label {
+      font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em;
+      color: var(--text-3); margin-bottom: 6px;
+    }
+    .detail-grid { display: flex; flex-direction: column; gap: 20px; }
+    .detail-amount { font-size: 1.6rem; font-weight: 800; color: var(--orange); }
+    .detail-text { font-size: 0.9rem; color: var(--text-2); line-height: 1.6; overflow-wrap: anywhere; white-space: pre-line; }
+    .timeline { border-left: 2px solid var(--border); margin-left: 4px; padding-left: 14px; display: flex; flex-direction: column; gap: 10px; }
+    .timeline__item { font-size: 0.85rem; color: var(--text-2); overflow-wrap: anywhere; }
+    .timeline__time { display: block; font-size: 0.72rem; color: var(--text-3); }
+    .detail-actions { display: flex; gap: 8px; flex-wrap: wrap; padding-top: 16px; border-top: 1px solid var(--border); }
+    .action-btn--plain { background: var(--bg-3); color: var(--text-2); border-color: var(--border); }
+    .confirm-bar {
+      display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;
+      padding: 12px 14px; border-radius: var(--radius); background: var(--red-dim); border: 1px solid rgba(220,38,38,0.3);
+      color: #fca5a5; font-size: 0.85rem;
     }
   </style>
 </head>
@@ -41,48 +49,38 @@
 
     <div class="dashboard-main">
       <header class="dashboard-header">
-        <span class="dashboard-header__title">All Quotes</span>
-        <a href="/dashboard/new-quote.html" class="btn btn--primary btn--sm">+ New Quote</a>
+        <span class="dashboard-header__title">Quotes</span>
+        <a href="/dashboard/new-quote.html" class="btn btn--primary btn--sm">+ New quote</a>
       </header>
 
       <main class="dashboard-body">
 
-        <div class="page-title">Your Quotes</div>
-        <p class="page-sub">Mark jobs won, lost, or replied when a customer gets back to you.</p>
+        <div class="page-title">Your quotes</div>
+        <p class="page-sub">Tap a quote for its timeline and actions.</p>
 
-        <div class="alert alert--error"   id="error-msg"></div>
-        <div class="alert alert--success" id="success-msg"></div>
+        <div class="alert alert--error"   id="error-msg" role="alert"></div>
+        <div class="alert alert--success" id="success-msg" role="status"></div>
 
-        <!-- Filter bar -->
         <div class="filter-bar">
-          <input type="text"   id="search-input"  placeholder="Search by customer or job…" />
-          <select id="status-filter">
-            <option value="">All statuses</option>
-            <option value="sent">Sent</option>
-            <option value="followup">Following Up</option>
+          <input type="search" id="search-input" placeholder="Search name, email or job…" autocomplete="off" />
+          <select id="status-filter" aria-label="Filter by status">
+            <option value="">All</option>
+            <option value="sent">Following up</option>
+            <option value="replied">Replied</option>
             <option value="won">Won</option>
             <option value="lost">Lost</option>
-            <option value="replied">Replied</option>
+            <option value="archived">Archived</option>
           </select>
         </div>
 
-        <!-- Quotes table -->
         <div class="table-wrap">
           <div class="table-header">
-            <span class="table-title" id="table-count">All Quotes</span>
+            <span class="table-title" id="table-count">Quotes</span>
           </div>
           <div class="table-container">
             <table>
               <thead>
-                <tr>
-                  <th>Customer</th>
-                  <th>Job</th>
-                  <th>Amount</th>
-                  <th>Follow-ups</th>
-                  <th>Status</th>
-                  <th>Sent</th>
-                  <th>Actions</th>
-                </tr>
+                <tr><th>Customer</th><th>Job</th><th>Amount</th><th>Follow-ups</th><th>Status</th><th>Sent</th><th>Actions</th></tr>
               </thead>
               <tbody id="quotes-tbody">
                 <tr><td colspan="7" class="table-empty">Loading…</td></tr>
@@ -97,10 +95,10 @@
 
   <!-- Quote detail modal -->
   <div class="modal-backdrop" id="detail-modal">
-    <div class="modal">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
       <div class="modal__header">
-        <h2 class="modal__title" id="modal-customer-name">Quote Details</h2>
-        <button class="modal__close" id="modal-close" aria-label="Close">✕</button>
+        <h2 class="modal__title" id="modal-title">Quote</h2>
+        <button class="modal__close" id="modal-close" type="button" aria-label="Close">✕</button>
       </div>
       <div id="modal-body"></div>
     </div>
@@ -109,219 +107,215 @@
   <script type="module">
     import { supabase }                                          from '/js/supabase.js';
     import { getContext, renderSidebar, hasAccess, showNoAccessBanner,
-             sanitize, formatMoney, statusBadge, QUIET_ERRORS }  from '/js/dashboard.js';
+             sanitize, formatMoney, formatDate, statusBadge, eventText, timeAgo,
+             QUIET_ERRORS }                                      from '/js/dashboard.js';
 
-    let allQuotes      = [];
     let ctx = null;
+    let quotes = [];
+    let openId = null;      // quote shown in the modal
+    let confirmingDelete = false;
 
-    // ── Helpers ───────────────────────────────────────────────────────────────
-    function formatDate(iso) {
-      return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: '2-digit' });
+    const $ = id => document.getElementById(id);
+    const isOpen = q => q.status === 'sent' || q.status === 'replied';
+
+    function flash(id, msg) {
+      $(id === 'error-msg' ? 'success-msg' : 'error-msg').classList.remove('visible');
+      $(id).textContent = msg;
+      $(id).classList.add('visible');
+      if (id === 'success-msg') setTimeout(() => $(id).classList.remove('visible'), 3000);
     }
 
-    // Dots showing which follow-ups have fired
-    function followupDots(q) {
-      const checks = [
-        { flag: q.followup_step >= 1, label: 'D2'  },
-        { flag: q.followup_step >= 2, label: 'D5'  },
-        { flag: q.followup_step >= 3, label: 'D10' },
-        { flag: q.followup_step >= 4, label: 'D20' },
-      ];
-      const dots = checks.map(c =>
-        `<span class="fp-dot${c.flag ? ' fp-dot--done' : ' fp-dot--pending'}" title="${c.label}"></span>`
-      ).join('');
-      const sent = checks.filter(c => c.flag).length;
-      return `<div class="followup-progress">${dots}<span class="fp-label">${sent}/4</span></div>`;
+    // 4 dots for day 2/5/10/20, filled by followup_step, plus what's next
+    function followups(q) {
+      const dots = [1, 2, 3, 4].map(n => `<span class="fp-dot${q.followup_step >= n ? ' fp-dot--done' : ''}"></span>`).join('');
+      let next = '';
+      if (q.status === 'sent' && !q.paused && q.next_followup_at) next = 'Next: ' + formatDate(q.next_followup_at);
+      else if (q.followup_step >= 4) next = 'All sent';
+      return `<div class="followup-progress" title="Day 2, 5, 10, 20">${dots}<span class="fp-label">${sanitize(next)}</span></div>`;
     }
 
-    // ── Update status ─────────────────────────────────────────────────────────
-    async function updateStatus(quoteId, newStatus) {
-      // Won, Lost and Replied all mean the customer answered — stop follow-ups
-      const { error } = await supabase
-        .from('quotes')
-        .update({ status: newStatus })
-        .eq('id', quoteId);
+    const viewedChip = q => q.view_count > 0 ? `<span class="chip">Viewed ${q.view_count}×</span>` : '';
 
-      if (error) {
-        document.getElementById('error-msg').textContent = 'Failed to update. Please try again.';
-        document.getElementById('error-msg').classList.add('visible');
-        return;
-      }
-
-      document.getElementById('success-msg').textContent =
-        `Quote marked as ${newStatus}.`;
-      document.getElementById('success-msg').classList.add('visible');
-      setTimeout(() => document.getElementById('success-msg').classList.remove('visible'), 3000);
-
-      await loadQuotes();
+    function quickActions(q) {
+      if (!isOpen(q) || q.archived) return '<span class="text-muted text-xs">—</span>';
+      return `<div class="action-row">
+        <button class="action-btn action-btn--won"  data-id="${sanitize(q.id)}" data-action="won">Won</button>
+        <button class="action-btn action-btn--lost" data-id="${sanitize(q.id)}" data-action="lost">Lost</button>
+        ${q.status === 'sent' ? `<button class="action-btn action-btn--reply" data-id="${sanitize(q.id)}" data-action="replied">Replied</button>` : ''}
+      </div>`;
     }
 
-    // ── Render table ──────────────────────────────────────────────────────────
-    function renderTable(quotes) {
-      const tbody = document.getElementById('quotes-tbody');
-      document.getElementById('table-count').textContent =
-        `${quotes.length} Quote${quotes.length !== 1 ? 's' : ''}`;
+    // ── List ─────────────────────────────────────────────────────────────────
+    function renderTable() {
+      const search = $('search-input').value.trim().toLowerCase();
+      const filter = $('status-filter').value;
+      const list = quotes.filter(q =>
+        (filter === 'archived' ? q.archived : !q.archived && (!filter || q.status === filter)) &&
+        (!search || [q.customer_name, q.customer_email, q.job_description].some(v => (v || '').toLowerCase().includes(search))));
 
-      if (!quotes.length) {
-        tbody.innerHTML = `<tr><td colspan="7" class="table-empty">No quotes found.</td></tr>`;
-        return;
-      }
-
-      tbody.innerHTML = quotes.map(q => {
-        const canAct = q.status !== 'won' && q.status !== 'lost';
-        const actions = canAct ? `
-          <div style="display:flex;gap:5px;flex-wrap:wrap;">
-            <button class="action-btn action-btn--won"  data-id="${q.id}" data-action="won">Won</button>
-            <button class="action-btn action-btn--lost" data-id="${q.id}" data-action="lost">Lost</button>
-            ${q.status !== 'replied' ? `<button class="action-btn action-btn--reply" data-id="${q.id}" data-action="replied">Replied</button>` : ''}
-          </div>` : '<span class="text-muted text-xs">Closed</span>';
-
-        return `
-          <tr style="cursor:pointer;" data-id="${q.id}">
-            <td data-label="Customer">${sanitize(q.customer_name)}</td>
-            <td data-label="Job" style="max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${sanitize(q.job_description)}</td>
-            <td data-label="Amount" class="quote-amount-col">${formatMoney(q.amount, q.currency)}</td>
-            <td data-label="Follow-ups">${followupDots(q)}</td>
-            <td data-label="Status">${statusBadge(q)}</td>
-            <td data-label="Sent" style="color:var(--text-3);white-space:nowrap;">${formatDate(q.created_at)}</td>
-            <td data-label="Actions">${actions}</td>
-          </tr>`;
-      }).join('');
+      $('table-count').textContent = `${list.length} quote${list.length === 1 ? '' : 's'}`;
+      $('quotes-tbody').innerHTML = list.length ? list.map(q => `
+        <tr data-id="${sanitize(q.id)}">
+          <td data-label="Customer">${sanitize(q.customer_name)}<span class="cell-sub">${sanitize(q.customer_email)}</span></td>
+          <td data-label="Job" class="cell-clip">${sanitize(q.job_description)}</td>
+          <td data-label="Amount" class="cell-amount">${sanitize(formatMoney(q.amount, q.currency))}</td>
+          <td data-label="Follow-ups">${followups(q)}</td>
+          <td data-label="Status">${statusBadge(q)}${viewedChip(q)}</td>
+          <td data-label="Sent" class="cell-muted">${sanitize(formatDate(q.sent_at || q.created_at))}</td>
+          <td data-label="Actions">${quickActions(q)}</td>
+        </tr>`).join('') : '<tr><td colspan="7" class="table-empty">No quotes found.</td></tr>';
     }
 
-    // ── Filter logic ──────────────────────────────────────────────────────────
-    function applyFilters() {
-      const search = document.getElementById('search-input').value.toLowerCase();
-      const status = document.getElementById('status-filter').value;
-
-      const filtered = allQuotes.filter(q => {
-        const matchSearch =
-          !search ||
-          q.customer_name.toLowerCase().includes(search) ||
-          (q.job_description || '').toLowerCase().includes(search);
-        const matchStatus = !status || q.status === status;
-        return matchSearch && matchStatus;
-      });
-
-      renderTable(filtered);
-    }
-
-    document.getElementById('search-input').addEventListener('input', applyFilters);
-    document.getElementById('quotes-tbody').addEventListener('click', e => {
-      const btn = e.target.closest('[data-action]');
-      if (btn) return updateStatus(btn.dataset.id, btn.dataset.action);
-      const row = e.target.closest('tr[data-id]');
-      if (row) openModal(row.dataset.id);
-    });
-    document.getElementById('status-filter').addEventListener('change', applyFilters);
-
-    // ── Modal ─────────────────────────────────────────────────────────────────
-    function openModal(quoteId) {
-      const q = allQuotes.find(x => x.id === quoteId);
-      if (!q) return;
-
-      document.getElementById('modal-customer-name').textContent = q.customer_name;
-
-      const followupRows = [
-        { day: 2,  sent: q.followup_step >= 1 },
-        { day: 5,  sent: q.followup_step >= 2 },
-        { day: 10, sent: q.followup_step >= 3 },
-        { day: 20, sent: q.followup_step >= 4 },
-      ].map(f => `
-        <div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--border);">
-          <span style="font-size:0.8rem;color:${f.sent ? 'var(--green)' : 'var(--text-3)'};">
-            ${f.sent ? '✓' : '○'}
-          </span>
-          <span style="font-size:0.875rem;color:${f.sent ? 'var(--text)' : 'var(--text-3)'};">
-            Day ${f.day} follow-up ${f.sent ? 'sent' : '(pending)'}
-          </span>
-        </div>`).join('');
-
-      document.getElementById('modal-body').innerHTML = `
-        <div style="display:flex;flex-direction:column;gap:20px;">
-
-          <div>
-            <div class="text-xs text-muted mb-4" style="text-transform:uppercase;letter-spacing:.06em;font-weight:700;">Status</div>
-            ${statusBadge(q)}
-          </div>
-
-          <div>
-            <div class="text-xs text-muted mb-4" style="text-transform:uppercase;letter-spacing:.06em;font-weight:700;">Quote Amount</div>
-            <div style="font-size:1.6rem;font-weight:800;color:var(--orange);">${formatMoney(q.amount, q.currency)}</div>
-          </div>
-
-          <div>
-            <div class="text-xs text-muted mb-4" style="text-transform:uppercase;letter-spacing:.06em;font-weight:700;">Job Description</div>
-            <p style="font-size:0.9rem;color:var(--text-2);line-height:1.6;margin:0;">${sanitize(q.job_description)}</p>
-          </div>
-
-          <div>
-            <div class="text-xs text-muted mb-4" style="text-transform:uppercase;letter-spacing:.06em;font-weight:700;">Contact</div>
-            <div style="font-size:0.875rem;color:var(--text-2);">${sanitize(q.customer_email)}</div>
-            ${q.customer_phone ? `<div style="font-size:0.875rem;color:var(--text-3);margin-top:4px;">${sanitize(q.customer_phone)}</div>` : ''}
-          </div>
-
-          <div>
-            <div class="text-xs text-muted mb-8" style="text-transform:uppercase;letter-spacing:.06em;font-weight:700;">Follow-up Progress</div>
-            ${followupRows}
-          </div>
-
-          <div style="font-size:0.775rem;color:var(--text-3);">
-            Sent on ${formatDate(q.created_at)}
-          </div>
-
-          ${q.status !== 'won' && q.status !== 'lost' ? `
-          <div style="display:flex;gap:8px;flex-wrap:wrap;padding-top:8px;border-top:1px solid var(--border);">
-            <button class="action-btn action-btn--won"  data-id="${q.id}" data-action="won">Mark Won</button>
-            <button class="action-btn action-btn--lost" data-id="${q.id}" data-action="lost">Mark Lost</button>
-            ${q.status !== 'replied' ? `<button class="action-btn action-btn--reply" data-id="${q.id}" data-action="replied">Mark Replied</button>` : ''}
-          </div>` : ''}
-
-        </div>`;
-
-      document.getElementById('detail-modal').classList.add('visible');
-    }
-
-    function closeModal() {
-      document.getElementById('detail-modal').classList.remove('visible');
-    }
-
-    document.getElementById('modal-close').addEventListener('click', closeModal);
-    document.getElementById('modal-body').addEventListener('click', e => {
-      const btn = e.target.closest('[data-action]');
-      if (!btn) return;
-      updateStatus(btn.dataset.id, btn.dataset.action);
-      closeModal();
-    });
-    document.getElementById('detail-modal').addEventListener('click', e => {
-      if (e.target === document.getElementById('detail-modal')) closeModal();
-    });
-
-    // ── Load quotes ───────────────────────────────────────────────────────────
     async function loadQuotes() {
       const { data, error } = await supabase
         .from('quotes')
-        .select('*')
+        .select('id, created_by, customer_name, customer_email, customer_phone, job_description, amount, currency, status, paused, archived, public_token, followup_step, next_followup_at, view_count, last_viewed_at, sent_at, closed_at, created_at')
         .eq('business_id', ctx.business.id)
         .order('created_at', { ascending: false });
-
-      if (error) {
-        document.getElementById('error-msg').textContent = 'Failed to load quotes.';
-        document.getElementById('error-msg').classList.add('visible');
-        return;
-      }
-
-      allQuotes = data || [];
-      applyFilters();
+      if (error) return flash('error-msg', 'Failed to load quotes. Please refresh.');
+      quotes = data;
+      renderTable();
     }
 
-    // ── Init ──────────────────────────────────────────────────────────────────
+    // ── Detail modal ─────────────────────────────────────────────────────────
+    async function openModal(id) {
+      const q = quotes.find(x => x.id === id);
+      if (!q) return;
+      openId = id;
+      $('modal-title').textContent = q.customer_name;
+      renderModal(q, null);
+      $('detail-modal').classList.add('visible');
+      const { data: events } = await supabase
+        .from('quote_events')
+        .select('id, type, detail, created_at')
+        .eq('quote_id', id)
+        .order('created_at', { ascending: true });
+      if (openId === id) renderModal(q, events || []);
+    }
+
+    function renderModal(q, events) {
+      const btn = (action, label, cls = 'plain') =>
+        `<button class="action-btn action-btn--${cls}" type="button" data-id="${sanitize(q.id)}" data-action="${action}">${label}</button>`;
+      const when = iso => `${formatDate(iso, true)} · ${new Date(iso).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}`;
+      const timeline = events === null ? '<p class="text-xs text-muted">Loading…</p>'
+        : events.length ? `<div class="timeline">${events.map(ev => `
+            <div class="timeline__item">${sanitize(eventText(ev, q))}<span class="timeline__time">${sanitize(when(ev.created_at))}</span></div>`).join('')}</div>`
+        : '<p class="text-xs text-muted">No activity yet.</p>';
+
+      $('modal-body').innerHTML = `
+        <div class="detail-grid">
+          <div>
+            <div class="detail-label">Status</div>
+            ${statusBadge(q)}${viewedChip(q)}
+            ${q.last_viewed_at ? `<p class="text-xs text-muted mt-8">Last opened ${sanitize(when(q.last_viewed_at))}</p>` : ''}
+          </div>
+          <div>
+            <div class="detail-label">Amount</div>
+            <div class="detail-amount">${sanitize(formatMoney(q.amount, q.currency))}</div>
+          </div>
+          <div>
+            <div class="detail-label">Job</div>
+            <p class="detail-text">${sanitize(q.job_description)}</p>
+          </div>
+          <div>
+            <div class="detail-label">Customer</div>
+            <p class="detail-text">${sanitize(q.customer_email)}${q.customer_phone ? `<br>${sanitize(q.customer_phone)}` : ''}</p>
+          </div>
+          <div>
+            <div class="detail-label">Follow-ups</div>
+            ${followups(q)}
+          </div>
+          <div>
+            <div class="detail-label">Timeline</div>
+            ${timeline}
+          </div>
+          ${confirmingDelete ? `
+          <div class="confirm-bar">
+            <span>Delete this quote and its history for good?</span>
+            <span class="action-row">${btn('delete-confirm', 'Delete', 'lost')}${btn('delete-cancel', 'Cancel')}</span>
+          </div>` : ''}
+          <div class="detail-actions">
+            ${isOpen(q) ? btn('won', 'Mark won', 'won') + btn('lost', 'Mark lost', 'lost') : ''}
+            ${q.status === 'sent' ? btn('replied', 'Mark replied', 'reply') + btn(q.paused ? 'resume' : 'pause', q.paused ? 'Resume chasing' : 'Pause chasing') : ''}
+            ${btn('copy', 'Copy customer link')}
+            ${btn(q.archived ? 'unarchive' : 'archive', q.archived ? 'Unarchive' : 'Archive')}
+            ${ctx.member.role === 'owner' && !confirmingDelete ? btn('delete', 'Delete', 'lost') : ''}
+          </div>
+        </div>`;
+    }
+
+    function closeModal() {
+      openId = null;
+      confirmingDelete = false;
+      $('detail-modal').classList.remove('visible');
+    }
+
+    // ── Actions (list + modal share one handler) ─────────────────────────────
+    const UPDATES = {
+      won: { status: 'won' }, lost: { status: 'lost' }, replied: { status: 'replied' },
+      pause: { paused: true }, resume: { paused: false }, archive: { archived: true }, unarchive: { archived: false },
+    };
+    const DONE_TEXT = { won: 'Marked won.', lost: 'Marked lost.', replied: 'Marked replied — follow-ups stopped.',
+      pause: 'Chasing paused.', resume: 'Chasing resumed.', archive: 'Quote archived.', unarchive: 'Quote unarchived.' };
+
+    async function act(id, action, btn) {
+      const q = quotes.find(x => x.id === id);
+      if (!q) return;
+
+      if (action === 'copy') {
+        const link = `${location.origin}/quote/?t=${encodeURIComponent(q.public_token)}`;
+        // Clipboard can hang or be blocked; fall back to showing the link after 1s
+        const copied = await Promise.race([(navigator.clipboard?.writeText(link) || Promise.reject()).then(() => true, () => false),
+                                           new Promise(r => setTimeout(() => r(false), 1000))]);
+        flash('success-msg', copied ? 'Customer link copied.' : 'Customer link: ' + link);
+        return;
+      }
+      if (action === 'delete' || action === 'delete-cancel') {
+        confirmingDelete = action === 'delete';
+        return openModal(id);
+      }
+
+      if (btn) btn.disabled = true;
+      const res = action === 'delete-confirm'
+        ? await supabase.from('quotes').delete().eq('id', id).select('id')
+        : await supabase.from('quotes').update(UPDATES[action]).eq('id', id).select('id');
+      // RLS quietly skips rows you can't touch, so "no error but no rows" is a failure too
+      if (res.error || !res.data?.length) {
+        if (btn) btn.disabled = false;
+        return flash('error-msg', action === 'delete-confirm'
+          ? "Couldn't delete the quote. Only the account owner can delete quotes."
+          : "Couldn't update the quote. Please try again.");
+      }
+
+      if (action === 'delete-confirm') closeModal();
+      flash('success-msg', action === 'delete-confirm' ? 'Quote deleted.' : DONE_TEXT[action]);
+      await loadQuotes();
+      if (openId) openModal(openId);
+    }
+
+    $('quotes-tbody').addEventListener('click', e => {
+      const btn = e.target.closest('[data-action]');
+      if (btn) return act(btn.dataset.id, btn.dataset.action, btn);
+      const row = e.target.closest('tr[data-id]');
+      if (row) openModal(row.dataset.id);
+    });
+    $('modal-body').addEventListener('click', e => {
+      const btn = e.target.closest('[data-action]');
+      if (btn) act(btn.dataset.id, btn.dataset.action, btn);
+    });
+    $('modal-close').addEventListener('click', closeModal);
+    $('detail-modal').addEventListener('click', e => { if (e.target === $('detail-modal')) closeModal(); });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape' && openId) closeModal(); });
+    $('search-input').addEventListener('input', renderTable);
+    $('status-filter').addEventListener('change', renderTable);
+
     async function init() {
       ctx = await getContext();
       renderSidebar(ctx, 'quotes');
       if (!hasAccess(ctx.business)) showNoAccessBanner();
-
       await loadQuotes();
+      const id = new URLSearchParams(location.search).get('id');
+      if (id) openModal(id);
     }
 
     init().catch(err => {
