@@ -29,10 +29,18 @@
         <div class="page-title">Send a new quote</div>
         <p class="page-sub">Enter the job details below. QuoteChase will send the quote and follow up automatically.</p>
 
-        <!-- Quota warning -->
-        <div class="alert alert--info"    id="quota-warn"   style="max-width:640px;"></div>
-        <div class="alert alert--error"   id="error-msg"    style="max-width:640px;"></div>
-        <div class="alert alert--success" id="success-msg"  style="max-width:640px;"></div>
+        <div class="alert alert--error" id="error-msg" role="alert" style="max-width:640px;"></div>
+
+        <!-- Shown after a successful send -->
+        <div class="dash-form" id="sent-panel" hidden>
+          <div class="settings-section__title">✓ Quote sent</div>
+          <p class="text-sm mt-8" id="sent-detail"></p>
+          <p class="text-sm mt-8" id="sent-sms"></p>
+          <div class="action-row mt-24">
+            <button class="btn btn--primary" id="send-another-btn" type="button">Send another</button>
+            <a href="/dashboard/quotes.html" class="btn btn--ghost">View quotes</a>
+          </div>
+        </div>
 
         <form class="dash-form" id="quote-form" novalidate>
 
@@ -97,7 +105,7 @@
           </div>
 
           <p class="text-xs text-muted mt-16">
-            Follow-ups will be sent automatically on day 2, 5, 10, and 20 until the customer replies.
+            Follow-ups go out automatically on day 2, 5, 10 and 20 until the customer answers on the quote page or you mark it Won, Lost or Replied.
           </p>
 
         </form>
@@ -151,6 +159,7 @@
     import { getContext, renderSidebar, hasAccess, showNoAccessBanner,
              formatMoney, QUIET_ERRORS }                         from '/js/dashboard.js';
 
+    const form               = document.getElementById('quote-form');
     const customerNameInput  = document.getElementById('customer-name');
     const quoteAmountInput   = document.getElementById('quote-amount');
     const customerEmailInput = document.getElementById('customer-email');
@@ -160,14 +169,15 @@
     const btnText            = document.getElementById('btn-text');
     const spinner            = document.getElementById('spinner');
     const errorMsg           = document.getElementById('error-msg');
-    const successMsg         = document.getElementById('success-msg');
-    const quotaWarn          = document.getElementById('quota-warn');
     const quotePreview       = document.getElementById('quote-preview');
     const phoneError         = document.getElementById('phone-error');
+    const sentPanel          = document.getElementById('sent-panel');
 
     let ctx = null;
+    let sending = false;
 
     function setLoading(on) {
+      sending = on;
       submitBtn.disabled = on;
       btnText.textContent = on ? 'Sending…' : 'Send quote & start follow-ups';
       spinner.classList.toggle('visible', on);
@@ -176,30 +186,24 @@
     function showError(msg) {
       errorMsg.textContent = msg;
       errorMsg.classList.add('visible');
-      successMsg.classList.remove('visible');
     }
 
     function clearMessages() {
       errorMsg.classList.remove('visible');
-      successMsg.classList.remove('visible');
       phoneError.classList.remove('visible');
     }
 
     // Live preview
     function updatePreview() {
-      const name   = customerNameInput.value.trim();
       const amount = quoteAmountInput.value.trim();
       const job    = jobDescInput.value.trim();
-
-      if (!name && !amount && !job) {
+      if (!customerNameInput.value.trim() && !amount && !job) {
         quotePreview.style.display = 'none';
         return;
       }
       quotePreview.style.display = 'block';
-      document.getElementById('preview-business').textContent =
-        ctx?.business.name || 'Your Business';
-      document.getElementById('preview-amount').textContent =
-        amount ? formatMoney(amount, ctx?.business.country) : '';
+      document.getElementById('preview-business').textContent = ctx?.business.name || 'Your Business';
+      document.getElementById('preview-amount').textContent = amount ? formatMoney(amount, ctx?.business.country) : '';
       document.getElementById('preview-job').textContent = job || '—';
     }
 
@@ -218,7 +222,19 @@
       return (us ? /^\+1\d{10}$/ : /^\+44\d{10}$/).test(e164) ? e164 : null;
     }
 
+    // The function answers non-2xx with { error: "<friendly message>" }
+    async function serverMessage(error) {
+      try { return (await error.context.json()).error; } catch (_) { return null; }
+    }
+
+    const SMS_TEXT = {
+      sent:    phone => `A text message was sent to ${phone} too.`,
+      failed:  ()    => "The text message couldn't be sent — check the number. The email went out fine.",
+      skipped: ()    => 'No phone number, so only the email was sent.',
+    };
+
     async function handleSubmit() {
+      if (sending) return;
       clearMessages();
 
       const customerName  = customerNameInput.value.trim();
@@ -228,7 +244,6 @@
       const customerPhone = rawPhone ? toE164(rawPhone, ctx.business.country) : null;
       const jobDesc       = jobDescInput.value.trim();
 
-      // Validation
       if (!customerName || !quoteAmount || !customerEmail || !jobDesc) {
         showError('Please fill in all required fields.');
         return;
@@ -244,37 +259,33 @@
       }
 
       setLoading(true);
+      const { data, error } = await supabase.functions.invoke('send-quote', { body: {
+        customer_name: customerName, customer_email: customerEmail, customer_phone: customerPhone,
+        job_description: jobDesc, amount: Number(quoteAmount),
+      } });
+      setLoading(false);
 
-      try {
-        const { data, error } = await supabase.functions.invoke('send-quote', { body: {
-          customer_name: customerName, customer_email: customerEmail, customer_phone: customerPhone,
-          job_description: jobDesc, amount: Number(quoteAmount),
-        } });
-        if (error) throw new Error((await error.context?.json?.().catch(() => null))?.error || 'Failed to send quote.');
-
-        // 4. Success — clear form and show confirmation
-        successMsg.textContent = `Quote sent to ${customerName}! Follow-ups will start automatically.`;
-        successMsg.classList.add('visible');
-
-        customerNameInput.value  = '';
-        quoteAmountInput.value   = '';
-        customerEmailInput.value = '';
-        customerPhoneInput.value = '';
-        jobDescInput.value       = '';
-        quotePreview.style.display = 'none';
-
-        // Redirect to all quotes after 2s
-        setTimeout(() => {
-          window.location.href = '/dashboard/quotes.html';
-        }, 2000);
-
-      } catch (err) {
-        showError(err.message || 'Something went wrong. Please try again.');
-        setLoading(false);
+      if (error || !data?.ok) {
+        showError((error && await serverMessage(error)) || "Couldn't send the quote. Check your connection and try again.");
+        return;
       }
+
+      document.getElementById('sent-detail').textContent =
+        `${customerName} has been emailed the quote for ${formatMoney(quoteAmount, ctx.business.country)}. Follow-ups will start automatically.`;
+      document.getElementById('sent-sms').textContent = (SMS_TEXT[data.sms] || SMS_TEXT.skipped)(customerPhone);
+      form.hidden = true;
+      sentPanel.hidden = false;
     }
 
     submitBtn.addEventListener('click', handleSubmit);
+
+    document.getElementById('send-another-btn').addEventListener('click', () => {
+      form.reset();
+      quotePreview.style.display = 'none';
+      sentPanel.hidden = true;
+      form.hidden = false;
+      customerNameInput.focus();
+    });
 
     // ── Init ─────────────────────────────────────────────────────────────────
     async function init() {
