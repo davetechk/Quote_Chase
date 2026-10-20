@@ -161,6 +161,20 @@ p  { color: var(--text-2); }
 @media (max-width: 600px) {
   .nav__links .btn--ghost:not(.nav__signin) { display: none; }
 }
+/* Small phones: tighten the nav so logo + Sign in + Start free trial never touch
+   (!important beats the inline styles on the logo in index.html) */
+@media (max-width: 420px) {
+  .nav__inner { padding: 0 16px !important; }
+  .nav__links { gap: 6px !important; }
+  .nav__links .btn--sm { padding: 8px 10px; font-size: 0.8rem; }
+  .nav__logo img { width: 28px !important; height: 28px !important; margin-right: 8px !important; }
+  .nav__logo .logo-container > span { font-size: 17px !important; }
+}
+@media (max-width: 360px) {
+  .nav__logo .logo-container > span { display: none; } /* icon only */
+  .btn--lg { white-space: normal; text-align: center; justify-content: center; } /* stops 320px sideways scroll */
+  .footer__links { flex-wrap: wrap; gap: 12px 20px; }
+}
 
 /* ─── Hero ─────────────────────────────────────────────────────────────────── */
 .hero {
@@ -210,21 +224,6 @@ p  { color: var(--text-2); }
   gap: 16px;
   flex-wrap: wrap;
 }
-.hero__proof {
-  margin-top: 56px;
-  display: flex;
-  align-items: center;
-  gap: 20px;
-  color: var(--text-3);
-  font-size: 0.875rem;
-}
-.hero__proof-dot {
-  width: 8px; height: 8px;
-  border-radius: 50%;
-  background: var(--green);
-  flex-shrink: 0;
-}
-
 /* ─── Stats Bar ─────────────────────────────────────────────────────────────── */
 .stats-bar {
   border-top: 1px solid var(--border);
@@ -403,58 +402,6 @@ p  { color: var(--text-2); }
   margin-top: 1px;
 }
 
-/* ─── Calculator Widget ──────────────────────────────────────────────────────── */
-.calc {
-  background: var(--bg-2);
-  border: 1.5px solid var(--border);
-  border-radius: var(--radius-xl);
-  padding: 48px;
-  max-width: 640px;
-  margin: 0 auto;
-}
-@media (max-width: 600px) { .calc { padding: 32px 24px; } }
-.calc__title { margin-bottom: 8px; }
-.calc__sub { margin-bottom: 36px; font-size: 0.95rem; }
-.calc__fields { display: flex; flex-direction: column; gap: 20px; margin-bottom: 28px; }
-.calc__field label {
-  display: block;
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: var(--text-2);
-  margin-bottom: 8px;
-}
-.calc__field input {
-  width: 100%;
-  background: var(--bg-3);
-  border: 1.5px solid var(--border);
-  color: var(--text);
-  padding: 13px 16px;
-  border-radius: var(--radius);
-  font-size: 1rem;
-  transition: border-color var(--transition);
-  outline: none;
-}
-.calc__field input:focus { border-color: var(--orange); }
-.calc__result {
-  background: var(--bg-3);
-  border: 1.5px solid var(--border);
-  border-radius: var(--radius-lg);
-  padding: 28px;
-  text-align: center;
-  display: none;
-}
-.calc__result.visible { display: block; animation: fadeUp 0.3s ease; }
-.calc__result-lost {
-  font-size: 2.4rem;
-  font-weight: 800;
-  color: var(--red);
-  letter-spacing: -0.03em;
-  line-height: 1;
-  margin-bottom: 8px;
-}
-.calc__result-label { font-size: 0.9rem; color: var(--text-3); margin-bottom: 20px; }
-.calc__result-cta { margin-top: 4px; }
-
 /* ─── Section Headings ───────────────────────────────────────────────────────── */
 .section-label {
   font-size: 0.75rem;
@@ -513,23 +460,6 @@ p  { color: var(--text-2); }
   color: var(--text);
 }
 .feature-card__body { font-size: 0.9rem; line-height: 1.65; }
-
-/* ─── Testimonials ───────────────────────────────────────────────────────────── */
-.testimonial {
-  background: var(--bg-2);
-  border: 1.5px solid var(--border);
-  border-radius: var(--radius-lg);
-  padding: 32px;
-}
-.testimonial__quote {
-  font-size: 1.05rem;
-  color: var(--text);
-  line-height: 1.7;
-  margin-bottom: 20px;
-  font-style: italic;
-}
-.testimonial__author { font-size: 0.875rem; font-weight: 700; }
-.testimonial__role { font-size: 0.8rem; color: var(--text-3); margin-top: 2px; }
 
 /* ─── Footer ──────────────────────────────────────────────────────────────────── */
 .footer {

@@ -81,7 +81,7 @@
       align-items: center;
     }
     @media (max-width: 960px) {
-      .hero__grid { grid-template-columns: 1fr; gap: 56px; }
+      .hero__grid { grid-template-columns: minmax(0, 1fr); gap: 56px; }
     }
 
     .hero__eyebrow {
@@ -705,8 +705,8 @@
           <div class="hiw-step">
             <div class="hiw-step__num">4</div>
             <div class="hiw-step__content">
-              <div class="hiw-step__title">Customer replies — you win the job</div>
-              <div class="hiw-step__body">The moment the customer replies, or you mark the job Won or Lost from your dashboard, all follow-ups stop. No awkward over-chasing.</div>
+              <div class="hiw-step__title">Customer answers — you win the job</div>
+              <div class="hiw-step__body">The moment the customer accepts, declines or asks a question on their quote page — or you mark it Won, Lost or Replied — all follow-ups stop. No awkward over-chasing.</div>
             </div>
           </div>
         </div>
@@ -753,7 +753,7 @@
         <div class="feature-card">
           <div class="feature-card__icon">⚡</div>
           <div class="feature-card__title">Automatic follow-ups</div>
-          <div class="feature-card__body">Day 2, 5, 10, and 20. Each message is polite and gets slightly firmer. Stops the moment the customer replies.</div>
+          <div class="feature-card__body">Day 2, 5, 10, and 20. Each message is polite and gets slightly firmer. Stops as soon as the customer answers on their quote page, or you mark it replied.</div>
         </div>
         <div class="feature-card">
           <div class="feature-card__icon">📱</div>
@@ -807,8 +807,9 @@
           <div class="pricing-card__features">
             <div class="pricing-card__feature">Automated follow-ups day 2, 5, 10 &amp; 20</div>
             <div class="pricing-card__feature">Email + SMS delivery</div>
-            <div class="pricing-card__feature">Quote status dashboard</div>
-            <div class="pricing-card__feature">Won / Lost tracking</div>
+            <div class="pricing-card__feature">Quote dashboard &amp; view tracking</div>
+            <div class="pricing-card__feature">Custom follow-up messages</div>
+            <div class="pricing-card__feature">1 user</div>
           </div>
           <a href="/auth/signup.html" class="btn btn--ghost w-full">Start free trial</a>
         </div>
@@ -825,7 +826,7 @@
           <div class="pricing-card__quota">150 quotes per month</div>
           <div class="pricing-card__features">
             <div class="pricing-card__feature">Everything in Solo</div>
-            <div class="pricing-card__feature">Custom follow-up messages</div>
+            <div class="pricing-card__feature">Up to 10 team members</div>
             <div class="pricing-card__feature">Priority email support</div>
           </div>
           <a href="/auth/signup.html" class="btn btn--primary w-full">Start free trial</a>
@@ -842,7 +843,8 @@
           <div class="pricing-card__quota">Unlimited quotes</div>
           <div class="pricing-card__features">
             <div class="pricing-card__feature">Everything in Crew</div>
-            <div class="pricing-card__feature">Early access to new features</div>
+            <div class="pricing-card__feature">Unlimited team members</div>
+            <div class="pricing-card__feature">Invoicing</div>
           </div>
           <a href="/auth/signup.html" class="btn btn--ghost w-full">Start free trial</a>
         </div>

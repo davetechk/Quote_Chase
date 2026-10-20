@@ -28,13 +28,6 @@ export async function getSession() {
   return data.session;
 }
 
-// ─── Get current user ───────────────────────────────────────────────────────
-export async function getUser() {
-  const { data, error } = await supabase.auth.getUser();
-  if (error) throw error;
-  return data.user;
-}
-
 // ─── Send password reset email ──────────────────────────────────────────────
 export async function resetPassword(email) {
   const { error } = await supabase.auth.resetPasswordForEmail(email, {

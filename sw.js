@@ -1,5 +1,6 @@
-// QuoteChase service worker — bump CACHE to ship new static files
-const CACHE = 'qc-v1';
+// QuoteChase service worker — network-first, so new deploys show up straight away.
+// Bump CACHE when the precache list changes.
+const CACHE = 'qc-v2';
 const PRECACHE = [
   '/css/main.css', '/css/dashboard.css',
   '/js/auth.js', '/js/dashboard.js', '/js/supabase.js', '/js/tracker.js',
@@ -26,16 +27,12 @@ self.addEventListener('fetch', e => {
   // Only same-origin GETs — Supabase, Dodo, Google etc. go straight to the network
   if (req.method !== 'GET' || new URL(req.url).origin !== self.location.origin) return;
 
-  if (req.mode === 'navigate') {
-    e.respondWith(fetch(req).then(res => {
-      if (res.ok && !res.redirected) caches.open(CACHE).then(c => c.put(req, res.clone()));
-      return res;
-    }).catch(async () => fresh(await caches.match(req)) || fresh(await caches.match('/offline.html'))));
-    return;
-  }
-
-  e.respondWith(caches.match(req).then(hit => hit || fetch(req).then(res => {
-    if (res.ok) caches.open(CACHE).then(c => c.put(req, res.clone()));
+  e.respondWith(fetch(req).then(res => {
+    if (res.ok && !res.redirected) {
+      const copy = res.clone();
+      caches.open(CACHE).then(c => c.put(req, copy));
+    }
     return res;
-  })));
+  }).catch(async () => fresh(await caches.match(req))
+    || (req.mode === 'navigate' ? fresh(await caches.match('/offline.html')) : Response.error())));
 });
