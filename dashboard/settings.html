@@ -6,7 +6,6 @@
   <title>Settings — QuoteChase</title>
   <link rel="stylesheet" href="../css/main.css" />
   <link rel="stylesheet" href="../css/dashboard.css" />
-  <!-- NOTE: paywall.css intentionally NOT applied here — settings is always accessible -->
   <link rel="icon" href="/icons/favicon-32.png" type="image/png">
   <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
   <link rel="manifest" href="/manifest.webmanifest">
@@ -207,43 +206,13 @@
 
         </div>
 
-        <!-- ── Danger Zone ───────────────────────────────────────────────── -->
-        <div class="danger-zone">
-          <div class="danger-zone__title">Danger Zone</div>
-          <div class="danger-zone__sub">Once you delete your account all your quotes and data are permanently removed. This cannot be undone.</div>
-          <button class="btn" id="delete-account-btn" type="button"
-                  style="background:var(--red-dim);color:var(--red);border:1.5px solid rgba(220,38,38,0.3);">
-            Delete my account
-          </button>
-        </div>
-
       </main>
     </div>
   </div>
 
   <script type="module">
     import { supabase }                                     from '/js/supabase.js';
-    import { requireAuth, getProfile, renderSidebar,
-             hasAccess, getPlanLabel, sanitize }             from '/js/dashboard.js';
-    import { signOut }                                       from '/js/auth.js';
-    import { trackVisit }                                    from '/js/tracker.js';
-
-    trackVisit('/dashboard/settings');
-
-    // ── Dodo base URLs — no query params here, built in dodoUrl() below ────
-    const DODO_BASE = {
-      solo: 'https://checkout.dodopayments.com/buy/pdt_0NgijtDsudaDD1tf3AQZC',
-      crew: 'https://checkout.dodopayments.com/buy/pdt_0Ngil7HrWjMqjw7lOVTzW',
-      pro:  'https://checkout.dodopayments.com/buy/pdt_0NgilRTE6D0F9Hgz9Qi7z',
-    };
-
-    // ── Build Dodo URL keeping square brackets literal (Dodo requires this) ─
-    function dodoUrl(base, userId, email) {
-      let url = `${base}?quantity=1&metadata[user_id]=${encodeURIComponent(userId)}`;
-      if (email) url += `&checkout[email]=${encodeURIComponent(email)}`;
-      url += `&redirect_url=${encodeURIComponent('https://www.getquotechase.com/dashboard/index.html')}`;
-      return url;
-    }
+    import { getContext, renderSidebar, planLabel, trialDaysLeft, QUIET_ERRORS } from '/js/dashboard.js';
 
     // Default follow-up messages (fallback if none saved)
     const DEFAULT_MESSAGES = {
@@ -253,7 +222,7 @@
       day20: `Hi {{name}}, last follow-up on the quote for {{amount}}. If you've gone with someone else, no worries — but if you're still looking, I'd love to help. {{business}}`,
     };
 
-    let currentProfile = null;
+    let ctx = null;
 
     // ── Loading helpers ────────────────────────────────────────────────────
     function setLoading(btnId, textId, spinnerId, on, idleText) {
@@ -269,149 +238,43 @@
       setTimeout(() => el.classList.remove('visible'), 4000);
     }
 
-    // ── Populate profile form ─────────────────────────────────────────────
-    function populateProfile(profile) {
-      document.getElementById('business-name').value = profile.business_name || '';
-      document.getElementById('owner-name').value    = profile.owner_name    || '';
-      document.getElementById('trade').value         = profile.trade         || 'roofer';
-      document.getElementById('country').value       = profile.country       || 'GB';
+    // ── Populate forms ────────────────────────────────────────────────────
+    function populate({ member, business }) {
+      document.getElementById('business-name').value = business.name || '';
+      document.getElementById('owner-name').value    = member.full_name || '';
+      document.getElementById('trade').value         = business.trade || 'roofer';
+      document.getElementById('country').value       = business.country || 'GB';
+      const msgs = { ...DEFAULT_MESSAGES, ...(business.followup_templates || {}) };
+      for (const k of ['day2', 'day5', 'day10', 'day20']) document.getElementById('msg-' + k).value = msgs[k] || DEFAULT_MESSAGES[k];
     }
 
-    // ── Populate follow-up messages ────────────────────────────────────────
-    function populateMessages(profile) {
-      let msgs = DEFAULT_MESSAGES;
-      try {
-        if (profile.default_followup_message) {
-          msgs = { ...DEFAULT_MESSAGES, ...JSON.parse(profile.default_followup_message) };
-        }
-      } catch (_) {}
-
-      document.getElementById('msg-day2').value  = msgs.day2  || DEFAULT_MESSAGES.day2;
-      document.getElementById('msg-day5').value  = msgs.day5  || DEFAULT_MESSAGES.day5;
-      document.getElementById('msg-day10').value = msgs.day10 || DEFAULT_MESSAGES.day10;
-      document.getElementById('msg-day20').value = msgs.day20 || DEFAULT_MESSAGES.day20;
+    function renderBilling({ business }) {
+      document.getElementById('current-plan-name').textContent = planLabel(business);
+      document.getElementById('current-plan-status').textContent =
+        business.status === 'trialing' ? `Trial ends in ${trialDaysLeft(business)} days` : business.status;
+      document.getElementById('current-plan-quota').textContent = '';
     }
 
-    // ── Render billing section ─────────────────────────────────────────────
-    function renderBilling(profile, userId, userEmail) {
-      const label = getPlanLabel(profile);
-      document.getElementById('current-plan-name').textContent = label;
-
-      // Status line
-      let statusLine = '';
-      if (profile.subscription_status === 'trial') {
-        const daysLeft = Math.ceil(
-          (new Date(profile.trial_ends_at) - new Date()) / (1000 * 60 * 60 * 24)
-        );
-        statusLine = daysLeft > 0
-          ? `Trial ends in ${daysLeft} day${daysLeft !== 1 ? 's' : ''}`
-          : 'Trial expired';
-      } else if (profile.subscription_status === 'active') {
-        statusLine = 'Active subscription';
-      } else {
-        statusLine = 'No active subscription';
-      }
-      document.getElementById('current-plan-status').textContent = statusLine;
-
-      // Quota
-      const limit = profile.quote_limit || 0;
-      const used  = profile.quotes_used_this_month || 0;
-      document.getElementById('current-plan-quota').textContent =
-        limit > 0 ? `${used} / ${limit} quotes used this month` : 'No active plan';
-
-      // Highlight current plan card
-      const planMap = { solo: 'billing-solo', crew: 'billing-crew', pro: 'billing-pro' };
-      if (profile.subscription_status === 'active' && planMap[profile.plan]) {
-        document.getElementById(planMap[profile.plan])?.classList.add('billing-plan--current');
-      }
-
-      // Action buttons
-      const actionsEl = document.getElementById('billing-actions');
-      if (profile.subscription_status !== 'active') {
-        actionsEl.innerHTML = `
-          <a href="${dodoUrl(DODO_BASE.solo, userId, userEmail)}" class="btn btn--primary">Upgrade to Solo — £29/mo</a>
-          <a href="${dodoUrl(DODO_BASE.crew, userId, userEmail)}" class="btn btn--ghost">Crew — £59/mo</a>
-          <a href="${dodoUrl(DODO_BASE.pro,  userId, userEmail)}" class="btn btn--ghost">Pro — £99/mo</a>
-        `;
-      } else {
-        actionsEl.innerHTML = `
-          <a href="mailto:hello@getquotechase.com?subject=Manage%20subscription" class="btn btn--ghost">
-            Manage / Cancel subscription
-          </a>
-        `;
-      }
-    }
-
-    // ── Save profile ───────────────────────────────────────────────────────
     async function saveProfile() {
       setLoading('save-profile-btn', 'profile-btn-text', 'profile-spinner', true, 'Save changes');
-
-      const businessName = document.getElementById('business-name').value.trim();
-      const ownerName    = document.getElementById('owner-name').value.trim();
-      const trade        = document.getElementById('trade').value;
-      const country      = document.getElementById('country').value;
-
-      if (!businessName || !ownerName) {
-        showAlert('profile-error', 'Business name and your name are required.');
-        setLoading('save-profile-btn', 'profile-btn-text', 'profile-spinner', false, 'Save changes');
-        return;
-      }
-
-      const { error } = await supabase
-        .from('profiles')
-        .update({ business_name: businessName, owner_name: ownerName, trade, country })
-        .eq('id', currentProfile.id);
-
-      if (error) {
-        showAlert('profile-error', 'Failed to save. Please try again.');
-      } else {
-        currentProfile.business_name = businessName;
-        currentProfile.owner_name    = ownerName;
-        currentProfile.trade         = trade;
-        currentProfile.country       = country;
-        showAlert('profile-success', 'Profile saved.');
-      }
+      const name = document.getElementById('business-name').value.trim();
+      const fullName = document.getElementById('owner-name').value.trim();
+      const { error } = await supabase.from('businesses')
+        .update({ name, trade: document.getElementById('trade').value, country: document.getElementById('country').value })
+        .eq('id', ctx.business.id);
+      const { error: mErr } = await supabase.from('members').update({ full_name: fullName }).eq('user_id', ctx.user.id);
+      showAlert(error || mErr ? 'profile-error' : 'profile-success', error || mErr ? 'Failed to save. Please try again.' : 'Profile saved.');
       setLoading('save-profile-btn', 'profile-btn-text', 'profile-spinner', false, 'Save changes');
     }
 
-    // ── Save messages ──────────────────────────────────────────────────────
     async function saveMessages() {
       setLoading('save-msgs-btn', 'msgs-btn-text', 'msgs-spinner', true, 'Save messages');
-
-      const msgs = {
-        day2:  document.getElementById('msg-day2').value.trim(),
-        day5:  document.getElementById('msg-day5').value.trim(),
-        day10: document.getElementById('msg-day10').value.trim(),
-        day20: document.getElementById('msg-day20').value.trim(),
-      };
-
-      const { error } = await supabase
-        .from('profiles')
-        .update({ default_followup_message: JSON.stringify(msgs) })
-        .eq('id', currentProfile.id);
-
-      if (error) {
-        showAlert('msgs-error', 'Failed to save messages. Please try again.');
-      } else {
-        showAlert('msgs-success', 'Follow-up messages saved.');
-      }
+      const followup_templates = {};
+      for (const k of ['day2', 'day5', 'day10', 'day20']) followup_templates[k] = document.getElementById('msg-' + k).value.trim();
+      const { error } = await supabase.from('businesses').update({ followup_templates }).eq('id', ctx.business.id);
+      showAlert(error ? 'msgs-error' : 'msgs-success', error ? 'Failed to save messages. Please try again.' : 'Follow-up messages saved.');
       setLoading('save-msgs-btn', 'msgs-btn-text', 'msgs-spinner', false, 'Save messages');
     }
-
-    // ── Delete account ─────────────────────────────────────────────────────
-    document.getElementById('delete-account-btn').addEventListener('click', async () => {
-      const confirmed = confirm(
-        'Are you sure you want to delete your account? All quotes and data will be permanently removed. This cannot be undone.'
-      );
-      if (!confirmed) return;
-
-      const doubleConfirm = confirm('Last chance — this is permanent. Delete account?');
-      if (!doubleConfirm) return;
-
-      await supabase.from('quotes').delete().eq('business_id', currentProfile.id);
-      await supabase.from('profiles').delete().eq('id', currentProfile.id);
-      await signOut();
-    });
 
     // ── Button listeners ───────────────────────────────────────────────────
     document.getElementById('save-profile-btn').addEventListener('click', saveProfile);
@@ -419,25 +282,14 @@
 
     // ── Init ───────────────────────────────────────────────────────────────
     async function init() {
-      const session = await requireAuth();
-      const profile = await getProfile(session.user.id);
-
-      currentProfile = profile;
-      renderSidebar(profile, 'settings');
-      populateProfile(profile);
-      populateMessages(profile);
-      renderBilling(profile, session.user.id, session.user.email);
-
-      // Scroll to billing if hash is #billing
-      if (window.location.hash === '#billing') {
-        setTimeout(() => {
-          document.getElementById('billing')?.scrollIntoView({ behavior: 'smooth' });
-        }, 200);
-      }
+      ctx = await getContext();
+      renderSidebar(ctx, 'settings');
+      populate(ctx);
+      renderBilling(ctx);
     }
 
     init().catch(err => {
-      if (err.message !== 'no session' && err.message !== 'no profile') console.error(err);
+      if (!QUIET_ERRORS.includes(err.message)) console.error(err);
     });
   </script>
 </body>

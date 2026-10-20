@@ -75,6 +75,14 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
+.sidebar-user__role {
+  font-size: 0.75rem;
+  color: var(--text-3);
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .sidebar-user__plan {
   font-size: 0.75rem;
   color: var(--orange);
@@ -540,4 +548,13 @@ tbody td:first-child { color: var(--text); font-weight: 600; }
     top: calc(16px + env(safe-area-inset-top));
     left: calc(16px + env(safe-area-inset-left));
   }
+}
+
+/* ─── No-access banner (trial ended / plan lapsed) ───────────────────────────── */
+.no-access {
+  display: flex !important;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
 }

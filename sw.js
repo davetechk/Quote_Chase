@@ -1,7 +1,7 @@
 // QuoteChase service worker — bump CACHE to ship new static files
 const CACHE = 'qc-v1';
 const PRECACHE = [
-  '/css/main.css', '/css/dashboard.css', '/css/paywall.css',
+  '/css/main.css', '/css/dashboard.css',
   '/js/auth.js', '/js/dashboard.js', '/js/supabase.js', '/js/tracker.js',
   '/icons/icon-192.png', '/icons/icon-512.png', '/icons/icon-maskable-512.png',
   '/icons/apple-touch-icon.png', '/icons/favicon-32.png',

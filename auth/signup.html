@@ -92,7 +92,7 @@
     import { signUp, getSession } from '/js/auth.js';
     import { trackVisit } from '/js/tracker.js';
 
-    trackVisit('/auth/signup');
+    trackVisit();
 
     // Redirect if already logged in
     getSession().then(session => {

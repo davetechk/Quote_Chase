@@ -1,13 +1,8 @@
-import { supabase } from '/js/supabase.js';
+// Anonymous page-view ping for public pages. Kept free of supabase-js so it stays tiny.
+// Same project URL as js/supabase.js. Skipped in the admin's own browser.
+const TRACK_URL = 'https://bqqyiawsawnoikyvoxfj.supabase.co/functions/v1/track';
 
-export async function trackVisit(page) {
-  try {
-    await supabase.from('site_visits').insert({
-      page: page || window.location.pathname,
-      user_agent: navigator.userAgent,
-    });
-  } catch (_) {
-    // Non-critical — never block the page
-  }
+export function trackVisit() {
+  try { if (localStorage.getItem('qc_admin')) return; } catch (_) {}
+  fetch(TRACK_URL, { method: 'POST', keepalive: true }).catch(() => {});
 }
-// Each page calls trackVisit() explicitly — no auto-fire here

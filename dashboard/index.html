@@ -6,7 +6,6 @@
   <title>Dashboard — QuoteChase</title>
   <link rel="stylesheet" href="../css/main.css" />
   <link rel="stylesheet" href="../css/dashboard.css" />
-  <link rel="stylesheet" href="../css/paywall.css" />
   <link rel="icon" href="/icons/favicon-32.png" type="image/png">
   <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
   <link rel="manifest" href="/manifest.webmanifest">
@@ -103,23 +102,8 @@
 
   <script type="module">
     import { supabase }                                          from '/js/supabase.js';
-    import { requireAuth, getProfile, renderSidebar,
-             hasAccess, showPaywall, sanitize, formatMoney }     from '/js/dashboard.js';
-    import { trackVisit }                                        from '/js/tracker.js';
-
-    trackVisit('/dashboard');
-
-    // ── Status badge HTML ────────────────────────────────────────────────────
-    function statusBadge(status) {
-      const map = {
-        sent:      '<span class="badge badge--sent">Sent</span>',
-        followup:  '<span class="badge badge--followup">Following Up</span>',
-        won:       '<span class="badge badge--won">Won</span>',
-        lost:      '<span class="badge badge--lost">Lost</span>',
-        replied:   '<span class="badge badge--replied">Replied</span>',
-      };
-      return map[status] || `<span class="badge badge--sent">${sanitize(status)}</span>`;
-    }
+    import { getContext, renderSidebar, hasAccess, showNoAccessBanner,
+             sanitize, formatMoney, statusBadge, QUIET_ERRORS }  from '/js/dashboard.js';
 
     // ── Format date ──────────────────────────────────────────────────────────
     function formatDate(iso) {
@@ -131,14 +115,14 @@
       // Won, Lost and Replied all mean the customer answered — stop follow-ups
       const { error } = await supabase
         .from('quotes')
-        .update({ status: newStatus, customer_replied: true })
+        .update({ status: newStatus })
         .eq('id', quoteId);
       if (error) {
         document.getElementById('error-msg').textContent = 'Failed to update status. Please try again.';
         document.getElementById('error-msg').classList.add('visible');
         return;
       }
-      await loadDashboard(currentProfile);
+      await loadDashboard();
     }
 
     // ── Render recent quotes table ───────────────────────────────────────────
@@ -167,8 +151,8 @@
           <tr>
             <td data-label="Customer">${sanitize(q.customer_name)}</td>
             <td data-label="Job" style="max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${sanitize(q.job_description)}</td>
-            <td data-label="Amount" style="white-space:nowrap;font-weight:700;color:var(--text);">${formatMoney(q.quote_amount, currentProfile.country)}</td>
-            <td data-label="Status">${statusBadge(q.status)}</td>
+            <td data-label="Amount" style="white-space:nowrap;font-weight:700;color:var(--text);">${formatMoney(q.amount, q.currency)}</td>
+            <td data-label="Status">${statusBadge(q)}</td>
             <td data-label="Sent" style="white-space:nowrap;color:var(--text-3);">${formatDate(q.created_at)}</td>
             <td data-label="Actions">${actions}</td>
           </tr>`;
@@ -182,18 +166,18 @@
       const won      = quotes.filter(q => q.status === 'won').length;
       const openVal  = quotes
         .filter(q => ['sent', 'followup', 'replied'].includes(q.status))
-        .reduce((sum, q) => sum + Number(q.quote_amount), 0);
+        .reduce((sum, q) => sum + Number(q.amount), 0);
 
       document.getElementById('stat-total').textContent   = total;
       document.getElementById('stat-followup').textContent = followup;
       document.getElementById('stat-won').textContent     = won;
-      document.getElementById('stat-value').textContent   = formatMoney(openVal, currentProfile.country);
+      document.getElementById('stat-value').textContent   = formatMoney(openVal, ctx.business.country);
     }
 
     // ── Trial banner ─────────────────────────────────────────────────────────
-    function renderTrialBanner(profile) {
-      if (profile.subscription_status !== 'trial') return;
-      const trialEnd  = new Date(profile.trial_ends_at);
+    function renderTrialBanner(business) {
+      if (business.status !== 'trialing') return;
+      const trialEnd  = new Date(business.trial_ends_at);
       const now       = new Date();
       const daysLeft  = Math.ceil((trialEnd - now) / (1000 * 60 * 60 * 24));
       if (daysLeft > 0) {
@@ -204,13 +188,13 @@
     }
 
     // ── Main load ────────────────────────────────────────────────────────────
-    let currentProfile = null;
+    let ctx = null;
 
-    async function loadDashboard(profile) {
+    async function loadDashboard() {
       const { data: quotes, error } = await supabase
         .from('quotes')
         .select('*')
-        .eq('business_id', profile.id)
+        .eq('business_id', ctx.business.id)
         .order('created_at', { ascending: false })
         .limit(10);
 
@@ -226,22 +210,12 @@
 
     // ── Init ─────────────────────────────────────────────────────────────────
     async function init() {
-      const session = await requireAuth();
-      const profile = await getProfile(session.user.id);
-
-      currentProfile = profile;
-
-      renderSidebar(profile, 'dashboard');
-      renderTrialBanner(profile);
-
-      document.getElementById('owner-name').textContent =
-        profile.owner_name || profile.business_name || 'there';
-
-      if (!hasAccess(profile)) {
-        showPaywall();
-      }
-
-      await loadDashboard(profile);
+      ctx = await getContext();
+      renderSidebar(ctx, 'dashboard');
+      renderTrialBanner(ctx.business);
+      document.getElementById('owner-name').textContent = ctx.member.full_name || ctx.business.name || 'there';
+      if (!hasAccess(ctx.business)) showNoAccessBanner();
+      await loadDashboard();
     }
 
     document.getElementById('quotes-tbody').addEventListener('click', e => {
@@ -250,7 +224,7 @@
     });
 
     init().catch(err => {
-      if (err.message !== 'no session' && err.message !== 'no profile') console.error(err);
+      if (!QUIET_ERRORS.includes(err.message)) console.error(err);
     });
   </script>
 </body>

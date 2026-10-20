@@ -6,7 +6,6 @@
   <title>All Quotes — QuoteChase</title>
   <link rel="stylesheet" href="../css/main.css" />
   <link rel="stylesheet" href="../css/dashboard.css" />
-  <link rel="stylesheet" href="../css/paywall.css" />
   <link rel="icon" href="/icons/favicon-32.png" type="image/png">
   <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
   <link rel="manifest" href="/manifest.webmanifest">
@@ -109,27 +108,13 @@
 
   <script type="module">
     import { supabase }                                          from '/js/supabase.js';
-    import { requireAuth, getProfile, renderSidebar,
-             hasAccess, showPaywall, sanitize, formatMoney }     from '/js/dashboard.js';
-    import { trackVisit }                                        from '/js/tracker.js';
-
-    trackVisit('/dashboard/quotes');
+    import { getContext, renderSidebar, hasAccess, showNoAccessBanner,
+             sanitize, formatMoney, statusBadge, QUIET_ERRORS }  from '/js/dashboard.js';
 
     let allQuotes      = [];
-    let currentProfile = null;
+    let ctx = null;
 
     // ── Helpers ───────────────────────────────────────────────────────────────
-    function statusBadge(status) {
-      const map = {
-        sent:     '<span class="badge badge--sent">Sent</span>',
-        followup: '<span class="badge badge--followup">Following Up</span>',
-        won:      '<span class="badge badge--won">Won ✓</span>',
-        lost:     '<span class="badge badge--lost">Lost</span>',
-        replied:  '<span class="badge badge--replied">Replied</span>',
-      };
-      return map[status] || `<span class="badge badge--sent">${sanitize(status)}</span>`;
-    }
-
     function formatDate(iso) {
       return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: '2-digit' });
     }
@@ -137,10 +122,10 @@
     // Dots showing which follow-ups have fired
     function followupDots(q) {
       const checks = [
-        { flag: q.followup_2_sent,  label: 'D2'  },
-        { flag: q.followup_5_sent,  label: 'D5'  },
-        { flag: q.followup_10_sent, label: 'D10' },
-        { flag: q.followup_20_sent, label: 'D20' },
+        { flag: q.followup_step >= 1, label: 'D2'  },
+        { flag: q.followup_step >= 2, label: 'D5'  },
+        { flag: q.followup_step >= 3, label: 'D10' },
+        { flag: q.followup_step >= 4, label: 'D20' },
       ];
       const dots = checks.map(c =>
         `<span class="fp-dot${c.flag ? ' fp-dot--done' : ' fp-dot--pending'}" title="${c.label}"></span>`
@@ -154,7 +139,7 @@
       // Won, Lost and Replied all mean the customer answered — stop follow-ups
       const { error } = await supabase
         .from('quotes')
-        .update({ status: newStatus, customer_replied: true })
+        .update({ status: newStatus })
         .eq('id', quoteId);
 
       if (error) {
@@ -195,9 +180,9 @@
           <tr style="cursor:pointer;" data-id="${q.id}">
             <td data-label="Customer">${sanitize(q.customer_name)}</td>
             <td data-label="Job" style="max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${sanitize(q.job_description)}</td>
-            <td data-label="Amount" class="quote-amount-col">${formatMoney(q.quote_amount, currentProfile.country)}</td>
+            <td data-label="Amount" class="quote-amount-col">${formatMoney(q.amount, q.currency)}</td>
             <td data-label="Follow-ups">${followupDots(q)}</td>
-            <td data-label="Status">${statusBadge(q.status)}</td>
+            <td data-label="Status">${statusBadge(q)}</td>
             <td data-label="Sent" style="color:var(--text-3);white-space:nowrap;">${formatDate(q.created_at)}</td>
             <td data-label="Actions">${actions}</td>
           </tr>`;
@@ -238,10 +223,10 @@
       document.getElementById('modal-customer-name').textContent = q.customer_name;
 
       const followupRows = [
-        { day: 2,  sent: q.followup_2_sent  },
-        { day: 5,  sent: q.followup_5_sent  },
-        { day: 10, sent: q.followup_10_sent },
-        { day: 20, sent: q.followup_20_sent },
+        { day: 2,  sent: q.followup_step >= 1 },
+        { day: 5,  sent: q.followup_step >= 2 },
+        { day: 10, sent: q.followup_step >= 3 },
+        { day: 20, sent: q.followup_step >= 4 },
       ].map(f => `
         <div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--border);">
           <span style="font-size:0.8rem;color:${f.sent ? 'var(--green)' : 'var(--text-3)'};">
@@ -257,12 +242,12 @@
 
           <div>
             <div class="text-xs text-muted mb-4" style="text-transform:uppercase;letter-spacing:.06em;font-weight:700;">Status</div>
-            ${statusBadge(q.status)}
+            ${statusBadge(q)}
           </div>
 
           <div>
             <div class="text-xs text-muted mb-4" style="text-transform:uppercase;letter-spacing:.06em;font-weight:700;">Quote Amount</div>
-            <div style="font-size:1.6rem;font-weight:800;color:var(--orange);">${formatMoney(q.quote_amount, currentProfile.country)}</div>
+            <div style="font-size:1.6rem;font-weight:800;color:var(--orange);">${formatMoney(q.amount, q.currency)}</div>
           </div>
 
           <div>
@@ -317,7 +302,7 @@
       const { data, error } = await supabase
         .from('quotes')
         .select('*')
-        .eq('business_id', currentProfile.id)
+        .eq('business_id', ctx.business.id)
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -332,22 +317,15 @@
 
     // ── Init ──────────────────────────────────────────────────────────────────
     async function init() {
-      const session = await requireAuth();
-      const profile = await getProfile(session.user.id);
-
-      currentProfile = profile;
-      renderSidebar(profile, 'quotes');
-
-      if (!hasAccess(profile)) {
-        showPaywall();
-        return;
-      }
+      ctx = await getContext();
+      renderSidebar(ctx, 'quotes');
+      if (!hasAccess(ctx.business)) showNoAccessBanner();
 
       await loadQuotes();
     }
 
     init().catch(err => {
-      if (err.message !== 'no session' && err.message !== 'no profile') console.error(err);
+      if (!QUIET_ERRORS.includes(err.message)) console.error(err);
     });
   </script>
 </body>

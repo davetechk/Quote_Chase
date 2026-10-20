@@ -6,7 +6,6 @@
   <title>New Quote — QuoteChase</title>
   <link rel="stylesheet" href="../css/main.css" />
   <link rel="stylesheet" href="../css/dashboard.css" />
-  <link rel="stylesheet" href="../css/paywall.css" />
   <link rel="icon" href="/icons/favicon-32.png" type="image/png">
   <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
   <link rel="manifest" href="/manifest.webmanifest">
@@ -148,12 +147,9 @@
   </style>
 
   <script type="module">
-    import { supabase, SUPABASE_URL }                            from '/js/supabase.js';
-    import { requireAuth, getProfile, renderSidebar,
-             hasAccess, showPaywall, sanitize, formatMoney }     from '/js/dashboard.js';
-    import { trackVisit }                                        from '/js/tracker.js';
-
-    trackVisit('/dashboard/new-quote');
+    import { supabase }                                          from '/js/supabase.js';
+    import { getContext, renderSidebar, hasAccess, showNoAccessBanner,
+             formatMoney, QUIET_ERRORS }                         from '/js/dashboard.js';
 
     const customerNameInput  = document.getElementById('customer-name');
     const quoteAmountInput   = document.getElementById('quote-amount');
@@ -169,7 +165,7 @@
     const quotePreview       = document.getElementById('quote-preview');
     const phoneError         = document.getElementById('phone-error');
 
-    let currentProfile = null;
+    let ctx = null;
 
     function setLoading(on) {
       submitBtn.disabled = on;
@@ -201,9 +197,9 @@
       }
       quotePreview.style.display = 'block';
       document.getElementById('preview-business').textContent =
-        currentProfile?.business_name || 'Your Business';
+        ctx?.business.name || 'Your Business';
       document.getElementById('preview-amount').textContent =
-        amount ? formatMoney(amount, currentProfile?.country) : '';
+        amount ? formatMoney(amount, ctx?.business.country) : '';
       document.getElementById('preview-job').textContent = job || '—';
     }
 
@@ -229,7 +225,7 @@
       const quoteAmount   = quoteAmountInput.value.trim();
       const customerEmail = customerEmailInput.value.trim();
       const rawPhone      = customerPhoneInput.value.trim();
-      const customerPhone = rawPhone ? toE164(rawPhone, currentProfile.country) : null;
+      const customerPhone = rawPhone ? toE164(rawPhone, ctx.business.country) : null;
       const jobDesc       = jobDescInput.value.trim();
 
       // Validation
@@ -242,71 +238,19 @@
         return;
       }
       if (rawPhone && !customerPhone) {
-        phoneError.textContent = `Enter a valid ${currentProfile.country === 'US' ? 'US' : 'UK'} mobile number`;
+        phoneError.textContent = `Enter a valid ${ctx.business.country === 'US' ? 'US' : 'UK'} mobile number`;
         phoneError.classList.add('visible');
-        return;
-      }
-
-      // Quota check
-      const limit = currentProfile.quote_limit || 0;
-      const used  = currentProfile.quotes_used_this_month || 0;
-      if (limit > 0 && used >= limit) {
-        showError(`You've reached your ${limit} quote limit for this month. Upgrade your plan to send more.`);
         return;
       }
 
       setLoading(true);
 
       try {
-        // 1. Insert quote into DB
-        const { data: quoteData, error: insertError } = await supabase
-          .from('quotes')
-          .insert({
-            business_id:     currentProfile.id,
-            customer_name:   customerName,
-            customer_email:  customerEmail,
-            customer_phone:  customerPhone,
-            job_description: jobDesc,
-            quote_amount:    Number(quoteAmount),
-            status:          'sent',
-          })
-          .select()
-          .single();
-
-        if (insertError) throw insertError;
-
-        // 3. Trigger send-message Edge Function (ONE fetch, no duplicate)
-        const { data: sessionData } = await supabase.auth.getSession();
-        const token = sessionData?.session?.access_token;
-
-        const res = await fetch(
-          `${SUPABASE_URL}/functions/v1/send-message`,
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type':  'application/json',
-              'Authorization': `Bearer ${token}`,
-            },
-            body: JSON.stringify({
-              type:     'quote',
-              quoteId:  quoteData.id,
-              profile:  {
-                business_name: currentProfile.business_name,
-                owner_name:    currentProfile.owner_name,
-              },
-              customer: {
-                name:  customerName,
-                email: customerEmail,
-                phone: customerPhone,
-              },
-              job:         jobDesc,
-              quoteAmount: Number(quoteAmount),
-            }),
-          }
-        );
-
-        const result = await res.json();
-        if (!res.ok) throw new Error(result.error || 'Failed to send quote.');
+        const { data, error } = await supabase.functions.invoke('send-quote', { body: {
+          customer_name: customerName, customer_email: customerEmail, customer_phone: customerPhone,
+          job_description: jobDesc, amount: Number(quoteAmount),
+        } });
+        if (error) throw new Error((await error.context?.json?.().catch(() => null))?.error || 'Failed to send quote.');
 
         // 4. Success — clear form and show confirmation
         successMsg.textContent = `Quote sent to ${customerName}! Follow-ups will start automatically.`;
@@ -334,33 +278,18 @@
 
     // ── Init ─────────────────────────────────────────────────────────────────
     async function init() {
-      const session = await requireAuth();
-      const profile = await getProfile(session.user.id);
-
-      currentProfile = profile;
-      renderSidebar(profile, 'new-quote');
-      document.getElementById('currency-symbol').textContent = profile.country === 'US' ? '$' : '£';
-      customerPhoneInput.placeholder = profile.country === 'US' ? '(202) 555-0123' : '07700 900000';
-
-      if (!hasAccess(profile)) {
-        showPaywall();
-        return;
-      }
-
-      // Quota warning (soft warning at 80%)
-      const limit = profile.quote_limit || 0;
-      const used  = profile.quotes_used_this_month || 0;
-      if (limit > 0) {
-        const pct = used / limit;
-        if (pct >= 0.8) {
-          quotaWarn.textContent = `You've used ${used} of ${limit} quotes this month. Upgrade soon to avoid hitting your limit.`;
-          quotaWarn.classList.add('visible');
-        }
+      ctx = await getContext();
+      renderSidebar(ctx, 'new-quote');
+      document.getElementById('currency-symbol').textContent = ctx.business.country === 'US' ? '$' : '£';
+      customerPhoneInput.placeholder = ctx.business.country === 'US' ? '(202) 555-0123' : '07700 900000';
+      if (!hasAccess(ctx.business)) {
+        showNoAccessBanner();
+        submitBtn.disabled = true;
       }
     }
 
     init().catch(err => {
-      if (err.message !== 'no session' && err.message !== 'no profile') console.error(err);
+      if (!QUIET_ERRORS.includes(err.message)) console.error(err);
     });
   </script>
 </body>
