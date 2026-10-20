@@ -3,345 +3,232 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>Your Quote — QuoteChase</title>
-  <link rel="stylesheet" href="/css/main.css" />
-
+  <meta name="robots" content="noindex,nofollow">
+  <meta name="referrer" content="no-referrer">
+  <title>Your quote</title>
   <link rel="icon" href="/icons/favicon-32.png" type="image/png">
-  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
-  <link rel="manifest" href="/manifest.webmanifest">
-  <meta name="theme-color" content="#0F1117">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
   <style>
-    body { background: var(--bg); }
-
-    .quote-page {
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: flex-start;
-      padding: 48px 24px 80px;
+    :root {
+      --bg: #F5F3EF; --card: #FFFFFF; --text: #1F2328; --muted: #5F6670; --line: #E6E2DA;
+      --accent: #E86E00; --accent-dark: #C85F00; --green: #15803D; --red: #B91C1C;
     }
-
-    .quote-card {
-      width: 100%;
-      max-width: 600px;
-      background: var(--bg-2);
-      border: 1.5px solid var(--border);
-      border-radius: var(--radius-xl);
-      overflow: hidden;
-      box-shadow: var(--shadow-lg);
-      animation: fadeUp 0.4s ease;
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'DM Sans', system-ui, sans-serif; background: var(--bg); color: var(--text);
+      line-height: 1.6; min-height: 100vh; padding: 24px 16px calc(32px + env(safe-area-inset-bottom));
+      -webkit-font-smoothing: antialiased;
     }
-
-    /* Orange header bar */
-    .quote-card__header {
-      background: var(--orange);
-      padding: 32px 36px;
+    [hidden] { display: none !important; }
+    .wrap { max-width: 560px; margin: 0 auto; }
+    .card { background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 28px 24px; box-shadow: 0 6px 24px rgba(31,35,40,0.06); }
+    .business { font-size: 1.35rem; font-weight: 800; letter-spacing: -0.01em; }
+    .muted { color: var(--muted); font-size: 0.92rem; }
+    .label { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin: 22px 0 6px; }
+    .job { white-space: pre-line; overflow-wrap: anywhere; font-size: 1rem; }
+    .amount { font-size: 2.2rem; font-weight: 800; color: var(--accent); letter-spacing: -0.02em; line-height: 1.2; }
+    .actions { display: flex; flex-direction: column; gap: 10px; margin-top: 26px; }
+    .btn {
+      display: block; width: 100%; padding: 15px 18px; border-radius: 12px; border: 1.5px solid transparent;
+      font: inherit; font-weight: 700; font-size: 1rem; text-align: center; cursor: pointer; text-decoration: none;
     }
-    .quote-card__header-business {
-      font-size: 1.3rem;
-      font-weight: 800;
-      color: #fff;
-      margin-bottom: 4px;
-      letter-spacing: -0.02em;
+    .btn:disabled { opacity: 0.6; cursor: default; }
+    .btn--primary { background: var(--accent); color: #fff; }
+    .btn--primary:hover:not(:disabled) { background: var(--accent-dark); }
+    .btn--outline { background: #fff; color: var(--text); border-color: var(--line); }
+    .btn--outline:hover:not(:disabled) { border-color: #CFC9BE; }
+    .btn--danger { background: var(--red); color: #fff; }
+    .link-btn { background: none; border: 0; font: inherit; color: var(--muted); text-decoration: underline; cursor: pointer; padding: 8px; font-size: 0.9rem; }
+    textarea {
+      width: 100%; min-height: 110px; padding: 12px 14px; border: 1.5px solid var(--line); border-radius: 12px;
+      font: inherit; font-size: 16px; resize: vertical; color: var(--text);
     }
-    .quote-card__header-sub {
-      font-size: 0.875rem;
-      color: rgba(255,255,255,0.8);
-    }
-
-    /* Body */
-    .quote-card__body { padding: 36px; }
-
-    .quote-greeting {
-      font-size: 1.05rem;
-      color: var(--text-2);
-      line-height: 1.7;
-      margin-bottom: 28px;
-    }
-
-    /* Amount box */
-    .quote-amount-box {
-      background: var(--bg-3);
-      border: 1.5px solid var(--border);
-      border-radius: var(--radius-lg);
-      padding: 28px;
-      margin-bottom: 28px;
-    }
-    .quote-amount-label {
-      font-size: 0.75rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      color: var(--text-3);
-      margin-bottom: 8px;
-    }
-    .quote-amount-value {
-      font-size: 3rem;
-      font-weight: 800;
-      color: var(--orange);
-      letter-spacing: -0.04em;
-      line-height: 1;
-      margin-bottom: 20px;
-    }
-    .quote-job-label {
-      font-size: 0.75rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      color: var(--text-3);
-      margin-bottom: 8px;
-    }
-    .quote-job-desc {
-      font-size: 0.95rem;
-      color: var(--text-2);
-      line-height: 1.65;
-    }
-
-    /* Valid note */
-    .quote-valid {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 14px 18px;
-      background: var(--green-dim);
-      border: 1px solid rgba(22,163,74,0.25);
-      border-radius: var(--radius);
-      font-size: 0.875rem;
-      color: #86efac;
-      margin-bottom: 28px;
-    }
-    .quote-valid__icon { font-size: 1rem; flex-shrink: 0; }
-
-    /* CTA */
-    .quote-cta {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-    .quote-accept-btn {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      padding: 16px 24px;
-      background: var(--orange);
-      color: #fff;
-      border: none;
-      border-radius: var(--radius-lg);
-      font-size: 1rem;
-      font-weight: 700;
-      cursor: pointer;
-      transition: background var(--transition), transform var(--transition);
-      font-family: var(--font);
-      width: 100%;
-    }
-    .quote-accept-btn:hover {
-      background: var(--orange-hover);
-      transform: translateY(-1px);
-    }
-    .quote-reply-note {
-      font-size: 0.825rem;
-      color: var(--text-3);
-      text-align: center;
-      line-height: 1.6;
-    }
-
-    /* Accepted state */
-    .quote-accepted-box {
-      text-align: center;
-      padding: 32px 0 8px;
-      display: none;
-    }
-    .quote-accepted-box.visible { display: block; animation: fadeUp 0.3s ease; }
-    .quote-accepted-icon { font-size: 3rem; margin-bottom: 16px; }
-    .quote-accepted-title { font-size: 1.3rem; font-weight: 800; margin-bottom: 8px; }
-    .quote-accepted-sub { font-size: 0.9rem; color: var(--text-3); }
-
-    /* Footer */
-    .quote-card__footer {
-      padding: 20px 36px;
-      border-top: 1px solid var(--border);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-    }
-    .quote-card__footer-left { font-size: 0.775rem; color: var(--text-3); }
-    .quote-card__footer-right { font-size: 0.775rem; color: var(--text-3); }
-    .quote-card__footer-right a { color: var(--text-3); }
-    .quote-card__footer-right a:hover { color: var(--orange); }
-
-    /* Loading / error states */
-    .state-loading, .state-error {
-      text-align: center;
-      padding: 64px 24px;
-      max-width: 480px;
-    }
-    .state-loading { color: var(--text-3); }
-    .state-error h2 { font-size: 1.3rem; margin-bottom: 12px; }
-    .state-error p  { font-size: 0.9rem; color: var(--text-3); }
+    textarea:focus { outline: none; border-color: var(--accent); }
+    .counter { font-size: 0.8rem; color: var(--muted); text-align: right; margin-top: 4px; }
+    .box { border: 1px solid var(--line); border-radius: 12px; padding: 16px; margin-top: 14px; }
+    .notice { margin-top: 22px; padding: 16px; border-radius: 12px; font-weight: 600; }
+    .notice--good { background: #ECFDF3; color: var(--green); border: 1px solid #BBF7D0; }
+    .notice--neutral { background: #F3F1EC; color: var(--muted); border: 1px solid var(--line); }
+    .error { color: var(--red); font-size: 0.9rem; margin-top: 10px; }
+    .state { text-align: center; padding: 40px 24px; }
+    .state h1 { font-size: 1.3rem; margin-bottom: 8px; }
+    .footer { text-align: center; font-size: 0.8rem; color: var(--muted); margin-top: 20px; }
+    .footer a { color: inherit; }
   </style>
 </head>
 <body>
-  <div class="quote-page">
+  <div class="wrap">
 
-    <!-- Loading state -->
-    <div class="state-loading" id="state-loading">
-      <div class="spinner visible" style="margin:0 auto 16px;width:28px;height:28px;border-width:3px;border-top-color:var(--orange);border-color:rgba(255,122,0,0.2);"></div>
-      Loading your quote…
+    <div class="card state" id="loading"><p class="muted">Loading your quote…</p></div>
+
+    <div class="card state" id="not-found" hidden>
+      <h1>We couldn't find this quote</h1>
+      <p class="muted">The link may be incomplete, or the quote has been removed. Please contact the business that sent it.</p>
     </div>
 
-    <!-- Error state -->
-    <div class="state-error" id="state-error" style="display:none;">
-      <div style="font-size:2.5rem;margin-bottom:16px;">🔍</div>
-      <h2>Quote not found</h2>
-      <p>This link may have expired or the quote no longer exists. Please contact the business directly.</p>
+    <div class="card state" id="failed" hidden>
+      <h1>We couldn't load your quote</h1>
+      <p class="muted" id="failed-text">Please check your connection and try again.</p>
+      <div class="actions"><button class="btn btn--outline" id="retry-btn" type="button">Try again</button></div>
     </div>
 
-    <!-- Quote card (shown when loaded) -->
-    <div class="quote-card" id="quote-card" style="display:none;">
+    <div class="card" id="quote" hidden>
+      <div class="business" id="q-business"></div>
+      <p class="muted" id="q-for"></p>
 
-      <div class="quote-card__header">
-        <div class="quote-card__header-business" id="qc-business-name">—</div>
-        <div class="quote-card__header-sub" id="qc-header-sub">Quote for you</div>
-      </div>
+      <div class="label">The job</div>
+      <p class="job" id="q-job"></p>
 
-      <div class="quote-card__body">
+      <div class="label">Quote total</div>
+      <div class="amount" id="q-amount"></div>
+      <p class="muted" id="q-sent"></p>
 
-        <p class="quote-greeting" id="qc-greeting">
-          Hi there, here is your quote.
-        </p>
+      <div class="notice notice--good" id="q-done-good" hidden></div>
+      <div class="notice notice--neutral" id="q-done-neutral" hidden></div>
 
-        <div class="quote-amount-box">
-          <div class="quote-amount-label">Quote Total</div>
-          <div class="quote-amount-value" id="qc-amount">—</div>
-          <div class="quote-job-label">Job Description</div>
-          <div class="quote-job-desc" id="qc-job-desc">—</div>
+      <div id="q-actions">
+        <div class="actions">
+          <button class="btn btn--primary" id="accept-btn" type="button">Accept quote</button>
+          <button class="btn btn--outline" id="ask-btn" type="button">Ask a question</button>
+          <a class="btn btn--outline" id="book-btn" target="_blank" rel="noopener noreferrer" hidden>Book a call</a>
         </div>
 
-        <div class="quote-valid">
-          <span class="quote-valid__icon">✓</span>
-          This quote is valid for 30 days. Reply to the email or call us to accept.
+        <div class="box" id="ask-box" hidden>
+          <label class="label" for="question" style="margin-top:0;display:block;">Your question</label>
+          <textarea id="question" maxlength="1000" placeholder="e.g. Does this include taking the old materials away?"></textarea>
+          <div class="counter"><span id="q-count">0</span>/1000</div>
+          <div class="actions" style="margin-top:12px;">
+            <button class="btn btn--primary" id="send-question-btn" type="button">Send question</button>
+          </div>
         </div>
 
-        <!-- CTA -->
-        <div class="quote-cta" id="qc-cta">
-          <button class="quote-accept-btn" id="accept-btn" type="button">
-            ✓ &nbsp;I'd like to accept this quote
-          </button>
-          <p class="quote-reply-note">
-            Clicking will send an acceptance notification to <span id="qc-business-name-2">the business</span>.<br/>
-            Or simply reply to the original email.
-          </p>
+        <div class="box" id="decline-box" hidden>
+          <p style="font-weight:600;">Are you sure you want to decline this quote?</p>
+          <div class="actions" style="margin-top:12px;">
+            <button class="btn btn--danger" id="decline-confirm-btn" type="button">Yes, decline</button>
+            <button class="btn btn--outline" id="decline-cancel-btn" type="button">Cancel</button>
+          </div>
         </div>
 
-        <!-- Accepted confirmation (shown after clicking accept) -->
-        <div class="quote-accepted-box" id="accepted-box">
-          <div class="quote-accepted-icon">🎉</div>
-          <div class="quote-accepted-title">Great — we'll be in touch!</div>
-          <div class="quote-accepted-sub">Your acceptance has been noted. <span id="qc-business-name-3">The business</span> will contact you shortly to confirm the booking.</div>
-        </div>
-
-      </div>
-
-      <div class="quote-card__footer">
-        <div class="quote-card__footer-left">Sent via QuoteChase</div>
-        <div class="quote-card__footer-right">
-          <a href="https://getquotechase.com" target="_blank" rel="noopener">getquotechase.com</a>
+        <p class="error" id="action-error" role="alert" hidden></p>
+        <div style="text-align:center;margin-top:10px;">
+          <button class="link-btn" id="decline-btn" type="button">Decline this quote</button>
         </div>
       </div>
-
     </div>
 
+    <p class="footer">Sent with <a href="https://www.getquotechase.com" rel="noopener">QuoteChase</a></p>
   </div>
 
-  <script type="module">
-    import { supabase } from '/js/supabase.js';
-
-    // ── Helpers ────────────────────────────────────────────────────────────
-    function formatGBP(n) {
-      return '£' + Number(n).toLocaleString('en-GB', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
-    }
+  <script>
+    // Public page: plain fetch only — no supabase-js, no analytics.
+    const ENDPOINT = 'https://bqqyiawsawnoikyvoxfj.supabase.co/functions/v1/quote-public';
+    const token = new URLSearchParams(location.search).get('t');
+    const $ = id => document.getElementById(id);
+    let quote = null;
 
     function show(id) {
-      document.getElementById('state-loading').style.display = 'none';
-      document.getElementById('state-error').style.display   = 'none';
-      document.getElementById('quote-card').style.display    = 'none';
-      document.getElementById(id).style.display = id === 'quote-card' ? 'block' : 'block';
+      for (const s of ['loading', 'not-found', 'failed', 'quote']) $(s).hidden = s !== id;
     }
 
-    // ── Load quote by ID from URL param ───────────────────────────────────
-    // URL format: /quote/index.html?id=UUID
-    // The quote is public-readable — no auth needed for viewing
-    async function loadQuote() {
-      const params  = new URLSearchParams(window.location.search);
-      const quoteId = params.get('id');
+    function money(amount, currency) {
+      const usd = currency === 'USD';
+      return new Intl.NumberFormat(usd ? 'en-US' : 'en-GB', { style: 'currency', currency: usd ? 'USD' : 'GBP',
+        minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(Number(amount) || 0);
+    }
 
-      if (!quoteId) { show('state-error'); return; }
+    // POST to quote-public. Resolves { ok, status, data }; rejects only on network failure.
+    async function call(action, message) {
+      const res = await fetch(ENDPOINT, { method: 'POST', body: JSON.stringify({ token, action, ...(message && { message }) }) });
+      let data = null;
+      try { data = await res.json(); } catch (_) {}
+      return { ok: res.ok && data && !data.error, status: res.status, data };
+    }
 
-      // Fetch quote — uses public anon key, RLS allows this read
-      const { data: quote, error: quoteErr } = await supabase
-        .from('quotes')
-        .select('*')
-        .eq('id', quoteId)
-        .single();
+    function render() {
+      const q = quote;
+      document.title = `Quote from ${q.business_name}`;
+      $('q-business').textContent = q.business_name;
+      $('q-for').textContent = `Quote for ${q.customer_name}`;
+      $('q-job').textContent = q.job_description;
+      $('q-amount').textContent = money(q.amount, q.currency);
+      $('q-sent').textContent = q.sent_at
+        ? 'Sent ' + new Date(q.sent_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : '';
 
-      if (quoteErr || !quote) { show('state-error'); return; }
+      const book = $('book-btn');
+      if (/^https:\/\//i.test(q.booking_url || '')) { book.href = q.booking_url; book.hidden = false; }
 
-      // Fetch the business profile for the business name
-      const { data: profileRows } = await supabase
-        .rpc('get_quote_business', { p_business_id: quote.business_id });
-      const profile = profileRows?.[0];
+      // Closed quotes show their outcome, without buttons
+      const closed = q.status === 'won' || q.status === 'lost';
+      $('q-actions').hidden = closed;
+      $('q-done-good').hidden = q.status !== 'won';
+      $('q-done-neutral').hidden = q.status !== 'lost';
+      if (q.status === 'won') $('q-done-good').textContent = `You've accepted this quote. ${q.business_name} will be in touch.`;
+      if (q.status === 'lost') $('q-done-neutral').textContent = 'This quote has been closed.';
+    }
 
-      const businessName = profile?.business_name || 'Your contractor';
-      const ownerName    = profile?.owner_name    || businessName;
-
-      // Populate the card
-      document.getElementById('qc-business-name').textContent   = businessName;
-      document.getElementById('qc-business-name-2').textContent = businessName;
-      document.getElementById('qc-business-name-3').textContent = businessName;
-      document.getElementById('qc-header-sub').textContent      = `Quote from ${ownerName}`;
-      document.getElementById('qc-greeting').textContent        =
-        `Hi ${quote.customer_name}, here is your quote from ${businessName}.`;
-      document.getElementById('qc-amount').textContent   = formatGBP(quote.quote_amount);
-      document.getElementById('qc-job-desc').textContent = quote.job_description;
-
-      // If already won/lost/replied, hide accept button
-      if (quote.status === 'won') {
-        document.getElementById('qc-cta').style.display = 'none';
-        const accepted = document.getElementById('accepted-box');
-        accepted.querySelector('.quote-accepted-title').textContent = 'Quote already accepted';
-        accepted.querySelector('.quote-accepted-sub').textContent   =
-          `${businessName} has noted your acceptance and will be in touch.`;
-        accepted.classList.add('visible');
+    async function load() {
+      show('loading');
+      if (!token) return show('not-found');
+      try {
+        const r = await call('view');
+        if (r.ok) { quote = r.data; render(); return show('quote'); }
+        if (r.status === 404) return show('not-found');
+        $('failed-text').textContent = r.status === 429
+          ? 'Too many requests. Please wait a minute and try again.'
+          : 'Something went wrong on our side. Please try again.';
+        show('failed');
+      } catch (_) {
+        $('failed-text').textContent = 'Please check your connection and try again.';
+        show('failed');
       }
-
-      show('quote-card');
-
-      // ── Accept button ──────────────────────────────────────────────────
-      document.getElementById('accept-btn').addEventListener('click', async () => {
-        const btn = document.getElementById('accept-btn');
-        btn.disabled = true;
-        btn.textContent = 'Sending…';
-
-        // Mark quote as won
-        await supabase
-          .from('quotes')
-          .update({ status: 'won', customer_replied: true })
-          .eq('id', quoteId);
-
-        // Hide CTA, show acceptance confirmation
-        document.getElementById('qc-cta').style.display = 'none';
-        document.getElementById('accepted-box').classList.add('visible');
-      });
     }
 
-    loadQuote().catch(() => show('state-error'));
+    // Run an action; on success replace the buttons with a thank-you message
+    async function act(action, btn, message, thanks, good) {
+      $('action-error').hidden = true;
+      btn.disabled = true;
+      try {
+        const r = await call(action, message);
+        if (!r.ok) throw new Error(r.status === 429 ? 'Too many requests. Please wait a minute and try again.'
+                                                      : 'That didn\'t go through. Please try again.');
+        quote = { ...quote, ...r.data };
+        $('q-actions').hidden = true;
+        const box = $(good ? 'q-done-good' : 'q-done-neutral');
+        box.textContent = thanks;
+        box.hidden = false;
+      } catch (err) {
+        // fetch() rejects with a TypeError when the network is down
+        $('action-error').textContent = err instanceof TypeError
+          ? "That didn't go through. Check your connection and try again." : err.message;
+        $('action-error').hidden = false;
+        btn.disabled = false;
+      }
+    }
+
+    $('accept-btn').addEventListener('click', e =>
+      act('accept', e.currentTarget, null, `Thanks! ${quote.business_name} has been told and will be in touch.`, true));
+
+    $('ask-btn').addEventListener('click', () => {
+      $('ask-box').hidden = !$('ask-box').hidden;
+      $('decline-box').hidden = true;
+      if (!$('ask-box').hidden) $('question').focus();
+    });
+    $('question').addEventListener('input', () => { $('q-count').textContent = $('question').value.length; });
+    $('send-question-btn').addEventListener('click', e => {
+      const message = $('question').value.trim().slice(0, 1000);
+      if (!message) return $('question').focus();
+      act('question', e.currentTarget, message, `Thanks — your question has been sent to ${quote.business_name}.`, true);
+    });
+
+    $('decline-btn').addEventListener('click', () => { $('decline-box').hidden = false; $('ask-box').hidden = true; });
+    $('decline-cancel-btn').addEventListener('click', () => { $('decline-box').hidden = true; });
+    $('decline-confirm-btn').addEventListener('click', e =>
+      act('decline', e.currentTarget, null, 'Thanks for letting us know.', false));
+
+    $('retry-btn').addEventListener('click', load);
+    load();
   </script>
 </body>
 </html>
-
