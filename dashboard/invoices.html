@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Invoices — QuoteChase</title>
+  <link rel="stylesheet" href="../css/main.css" />
+  <link rel="stylesheet" href="../css/dashboard.css" />
+  <link rel="icon" href="/icons/favicon-32.png" type="image/png">
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#0F1117">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <style>
+    .editor { max-width: 760px; }
+    .items { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
+    .items th { text-align: left; font-size: 0.72rem; text-transform: uppercase; letter-spacing: .06em; color: var(--text-3); padding: 0 6px 6px 0; }
+    .items td { padding: 0 6px 8px 0; vertical-align: top; }
+    .items .form-input { padding: 10px 12px; }
+    .items .col-qty { width: 80px; } .items .col-price { width: 120px; } .items .col-x { width: 40px; }
+    .totals { margin-left: auto; max-width: 280px; font-size: 0.9rem; }
+    .totals div { display: flex; justify-content: space-between; padding: 4px 0; color: var(--text-2); }
+    .totals .grand { font-size: 1.1rem; font-weight: 800; color: var(--text); border-top: 1px solid var(--border); padding-top: 8px; }
+    .remove-row { width: 36px; height: 40px; border-radius: var(--radius); background: var(--bg-3); color: var(--text-3); }
+    .remove-row:hover { color: var(--red); }
+    .badge--draft { background: var(--bg-3); color: var(--text-2); border: 1px solid var(--border); }
+    .badge--void { background: var(--bg-3); color: var(--text-3); border: 1px solid var(--border); text-decoration: line-through; }
+    .action-btn--plain { background: var(--bg-3); color: var(--text-2); border-color: var(--border); }
+    @media (max-width: 640px) {
+      .items thead { display: none; }
+      .items tr { display: grid; grid-template-columns: 1fr 1fr 40px; gap: 6px; margin-bottom: 12px; }
+      .items td { padding: 0; }
+      .items td:first-child { grid-column: 1 / -1; }
+      .items .col-qty, .items .col-price { width: auto; }
+    }
+
+    /* Printable invoice — only this shows when printing */
+    #print-view { display: none; }
+    @media print {
+      body { background: #fff; }
+      .dashboard-layout, .sidebar-toggle, .sidebar-backdrop { display: none !important; }
+      #print-view { display: block; color: #111; font-family: var(--font); padding: 0; }
+      #print-view h1 { font-size: 26px; margin-bottom: 4px; }
+      #print-view table { width: 100%; border-collapse: collapse; margin: 24px 0; }
+      #print-view th, #print-view td { text-align: left; padding: 8px 6px; border-bottom: 1px solid #ddd; font-size: 13px; }
+      #print-view .num { text-align: right; }
+      #print-view .pv-head { display: flex; justify-content: space-between; gap: 24px; margin-bottom: 24px; }
+      #print-view .pv-muted { color: #555; font-size: 13px; white-space: pre-line; }
+      #print-view .pv-totals { margin-left: auto; width: 260px; font-size: 14px; }
+      #print-view .pv-totals div { display: flex; justify-content: space-between; padding: 3px 0; }
+      #print-view .pv-totals .grand { font-weight: 800; font-size: 16px; border-top: 1px solid #111; margin-top: 4px; padding-top: 6px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="dashboard-layout">
+
+    <div id="sidebar-container"></div>
+
+    <div class="dashboard-main">
+      <header class="dashboard-header">
+        <span class="dashboard-header__title">Invoices</span>
+        <button class="btn btn--primary btn--sm" id="new-invoice-btn" type="button" hidden>+ New invoice</button>
+      </header>
+
+      <main class="dashboard-body">
+
+        <div class="page-title">Invoices</div>
+        <p class="page-sub">Bill won jobs. Print or save as PDF from your browser.</p>
+
+        <div class="alert alert--error"   id="error-msg" role="alert"></div>
+        <div class="alert alert--success" id="success-msg" role="status"></div>
+
+        <div class="settings-section" id="not-available" hidden>
+          <div class="settings-section__title">Invoicing is on the Pro plan</div>
+          <p class="text-sm mt-8">Upgrade to Pro to create and track invoices for your won jobs.</p>
+          <a class="btn btn--primary btn--sm mt-16" href="/dashboard/settings.html#billing">See plans</a>
+        </div>
+
+        <!-- List -->
+        <div class="table-wrap" id="list-view" hidden>
+          <div class="table-header"><span class="table-title" id="invoice-count">Invoices</span></div>
+          <div class="table-container">
+            <table>
+              <thead><tr><th>Number</th><th>Customer</th><th>Total</th><th>Status</th><th>Due</th><th>Actions</th></tr></thead>
+              <tbody id="invoices-tbody"><tr><td colspan="6" class="table-empty">Loading…</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Editor (drafts only) -->
+        <div class="settings-section editor" id="editor" hidden>
+          <div class="settings-section__title" id="editor-title">New invoice</div>
+          <div class="settings-section__sub" id="editor-sub">Saved as a draft. Totals are confirmed by the server when you save.</div>
+
+          <div class="settings-field-row" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+            <div class="form-group">
+              <label class="form-label" for="inv-name">Customer name</label>
+              <input class="form-input" id="inv-name" maxlength="120" autocomplete="off" />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="inv-email">Customer email</label>
+              <input class="form-input" id="inv-email" type="email" inputmode="email" autocomplete="off" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="inv-address">Customer address (optional)</label>
+            <textarea class="form-input" id="inv-address" rows="2" maxlength="500"></textarea>
+          </div>
+
+          <div class="form-label">Line items</div>
+          <table class="items">
+            <thead><tr><th>Description</th><th class="col-qty">Qty</th><th class="col-price">Unit price</th><th class="col-x"></th></tr></thead>
+            <tbody id="items-tbody"></tbody>
+          </table>
+          <button class="btn btn--ghost btn--sm" id="add-row-btn" type="button">+ Add line</button>
+
+          <div class="settings-field-row mt-24" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+            <div class="form-group">
+              <label class="form-label" for="inv-tax">Tax rate (%)</label>
+              <input class="form-input" id="inv-tax" type="number" inputmode="decimal" min="0" max="100" step="0.01" value="0" />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="inv-due">Due date</label>
+              <input class="form-input" id="inv-due" type="date" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="inv-notes">Notes (optional)</label>
+            <textarea class="form-input" id="inv-notes" rows="2" maxlength="1000" placeholder="e.g. Bank details, payment terms"></textarea>
+          </div>
+
+          <div class="totals" id="totals"></div>
+
+          <div class="action-row mt-24">
+            <button class="btn btn--primary" id="save-invoice-btn" type="button">Save draft</button>
+            <button class="btn btn--ghost" id="cancel-edit-btn" type="button">Cancel</button>
+          </div>
+        </div>
+
+      </main>
+    </div>
+  </div>
+
+  <div id="print-view"></div>
+
+  <script type="module">
+    import { supabase }                                          from '/js/supabase.js';
+    import { getContext, renderSidebar, sanitize, formatDate, QUIET_ERRORS } from '/js/dashboard.js';
+
+    let ctx = null;
+    let invoices = [];
+    let editing = null;     // { id?, quote_id? } while the editor is open
+    let confirmDelete = null;
+
+    const $ = id => document.getElementById(id);
+    // Invoices need pence/cents, unlike the rounded dashboard figures
+    const money = (n, currency) => new Intl.NumberFormat(currency === 'USD' ? 'en-US' : 'en-GB',
+      { style: 'currency', currency: currency === 'USD' ? 'USD' : 'GBP' }).format(Number(n) || 0);
+    const currency = () => ctx.business.country === 'US' ? 'USD' : 'GBP';
+    // The database numbers invoices 1, 2, 3… — show them as INV-0001
+    const invNo = n => /^\d+$/.test(String(n)) ? 'INV-' + String(n).padStart(4, '0') : String(n ?? '');
+
+    function flash(id, msg) {
+      $(id === 'error-msg' ? 'success-msg' : 'error-msg').classList.remove('visible');
+      $(id).textContent = msg;
+      $(id).classList.add('visible');
+      if (id === 'success-msg') setTimeout(() => $(id).classList.remove('visible'), 4000);
+    }
+
+    // ── List ─────────────────────────────────────────────────────────────────
+    const STATUS = { draft: 'Draft', sent: 'Sent', paid: 'Paid', void: 'Void' };
+    const BADGE  = { draft: 'draft', sent: 'followup', paid: 'won', void: 'void' };
+
+    function renderList() {
+      $('invoice-count').textContent = `${invoices.length} invoice${invoices.length === 1 ? '' : 's'}`;
+      $('invoices-tbody').innerHTML = invoices.length ? invoices.map(inv => {
+        const b = (action, label, cls = 'plain') =>
+          `<button class="action-btn action-btn--${cls}" type="button" data-id="${sanitize(inv.id)}" data-action="${action}">${label}</button>`;
+        const open = inv.status === 'draft' || inv.status === 'sent';
+        const actions = confirmDelete === inv.id
+          ? `${b('delete-confirm', 'Delete draft', 'lost')}${b('delete-cancel', 'Cancel')}`
+          : [b('print', 'Print / PDF'),
+             inv.status === 'draft' && b('edit', 'Edit'),
+             open && b('paid', 'Mark paid', 'won'),
+             open && b('void', 'Void'),
+             inv.status === 'draft' && b('send', 'Send to customer'),
+             inv.status === 'draft' && b('delete', 'Delete', 'lost')].filter(Boolean).join('');
+        return `
+          <tr>
+            <td data-label="Number" class="cell-amount">${sanitize(invNo(inv.number))}</td>
+            <td data-label="Customer">${sanitize(inv.customer_name)}</td>
+            <td data-label="Total" class="cell-amount">${sanitize(money(inv.total, inv.currency))}</td>
+            <td data-label="Status"><span class="badge badge--${BADGE[inv.status]}">${STATUS[inv.status] || sanitize(inv.status)}</span></td>
+            <td data-label="Due" class="cell-muted">${sanitize(formatDate(inv.due_date, true))}</td>
+            <td data-label="Actions"><div class="action-row">${actions}</div></td>
+          </tr>`;
+      }).join('') : '<tr><td colspan="6" class="table-empty">No invoices yet. Create one from a won quote, or start a new one.</td></tr>';
+    }
+
+    const COLS = 'id, quote_id, number, customer_name, customer_email, customer_address, items, tax_rate, subtotal, tax_amount, total, currency, notes, due_date, status, sent_at, paid_at, created_at';
+
+    async function loadInvoices() {
+      const { data, error } = await supabase.from('invoices').select(COLS)
+        .eq('business_id', ctx.business.id).order('created_at', { ascending: false });
+      if (error) return flash('error-msg', "Couldn't load invoices. Please refresh.");
+      invoices = data;
+      renderList();
+    }
+
+    // ── Editor ───────────────────────────────────────────────────────────────
+    function rowHtml(item = { description: '', quantity: 1, unit_price: '' }) {
+      return `<tr>
+        <td><input class="form-input" data-f="description" maxlength="200" placeholder="Description" value="${sanitize(item.description)}" /></td>
+        <td class="col-qty"><input class="form-input" data-f="quantity" type="number" inputmode="decimal" min="0" step="any" value="${sanitize(item.quantity)}" /></td>
+        <td class="col-price"><input class="form-input" data-f="unit_price" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0.00" value="${sanitize(item.unit_price)}" /></td>
+        <td class="col-x"><button class="remove-row" type="button" data-remove-row aria-label="Remove line">✕</button></td>
+      </tr>`;
+    }
+
+    function readItems() {
+      return [...$('items-tbody').rows].map(tr => {
+        const v = f => tr.querySelector(`[data-f="${f}"]`).value;
+        return { description: v('description').trim(), quantity: Number(v('quantity')) || 0, unit_price: Number(v('unit_price')) || 0 };
+      }).filter(i => i.description || i.unit_price);
+    }
+
+    // Browser-side preview only — the saved figures come from the database
+    function previewTotals() {
+      const subtotal = readItems().reduce((s, i) => s + i.quantity * i.unit_price, 0);
+      const tax = subtotal * (Number($('inv-tax').value) || 0) / 100;
+      $('totals').innerHTML = `
+        <div><span>Subtotal</span><span>${sanitize(money(subtotal, currency()))}</span></div>
+        <div><span>Tax</span><span>${sanitize(money(tax, currency()))}</span></div>
+        <div class="grand"><span>Total</span><span>${sanitize(money(subtotal + tax, currency()))}</span></div>`;
+    }
+
+    function openEditor(inv) {
+      editing = { id: inv.id, quote_id: inv.quote_id || null };
+      $('editor-title').textContent = inv.id ? `Edit ${invNo(inv.number)}` : 'New invoice';
+      $('inv-name').value    = inv.customer_name || '';
+      $('inv-email').value   = inv.customer_email || '';
+      $('inv-address').value = inv.customer_address || '';
+      $('inv-tax').value     = inv.tax_rate ?? 0;
+      $('inv-due').value     = inv.due_date || new Date(Date.now() + 14 * 864e5).toISOString().slice(0, 10);
+      $('inv-notes').value   = inv.notes || '';
+      const items = inv.items?.length ? inv.items : [undefined];
+      $('items-tbody').innerHTML = items.map(rowHtml).join('');
+      previewTotals();
+      $('list-view').hidden = true;
+      $('new-invoice-btn').hidden = true;
+      $('editor').hidden = false;
+      $('inv-name').focus();
+    }
+
+    function closeEditor() {
+      editing = null;
+      $('editor').hidden = true;
+      $('list-view').hidden = false;
+      $('new-invoice-btn').hidden = false;
+    }
+
+    $('items-tbody').addEventListener('input', previewTotals);
+    $('inv-tax').addEventListener('input', previewTotals);
+    $('items-tbody').addEventListener('click', e => {
+      if (!e.target.closest('[data-remove-row]')) return;
+      e.target.closest('tr').remove();
+      if (!$('items-tbody').rows.length) $('items-tbody').insertAdjacentHTML('beforeend', rowHtml());
+      previewTotals();
+    });
+    $('add-row-btn').addEventListener('click', () => $('items-tbody').insertAdjacentHTML('beforeend', rowHtml()));
+    $('cancel-edit-btn').addEventListener('click', closeEditor);
+    $('new-invoice-btn').addEventListener('click', () => openEditor({}));
+
+    $('save-invoice-btn').addEventListener('click', async e => {
+      const btn = e.currentTarget;
+      const items = readItems();
+      const row = {
+        quote_id: editing.quote_id,
+        customer_name: $('inv-name').value.trim(),
+        customer_email: $('inv-email').value.trim() || null,
+        customer_address: $('inv-address').value.trim() || null,
+        items,
+        tax_rate: Number($('inv-tax').value) || 0,
+        notes: $('inv-notes').value.trim() || null,
+        due_date: $('inv-due').value || null,
+      };
+      if (!row.customer_name) return flash('error-msg', 'Add the customer name.');
+      if (!items.length || items.some(i => !i.description || i.quantity <= 0 || i.unit_price < 0))
+        return flash('error-msg', 'Each line needs a description, a quantity above 0 and a price.');
+      if (row.tax_rate < 0 || row.tax_rate > 100) return flash('error-msg', 'Tax rate must be between 0 and 100.');
+
+      btn.disabled = true;
+      const res = editing.id
+        ? await supabase.from('invoices').update(row).eq('id', editing.id).select('id')
+        : await supabase.from('invoices').insert(row).select('id');
+      btn.disabled = false;
+      if (res.error || !res.data?.length) return flash('error-msg', "Couldn't save the invoice. Please check the details and try again.");
+
+      // Re-read so the totals shown are the database's, not the browser's
+      const { data: savedRow } = await supabase.from('invoices').select(COLS).eq('id', res.data[0].id).single();
+      closeEditor();
+      await loadInvoices();
+      flash('success-msg', `${invNo(savedRow.number)} saved — total ${money(savedRow.total, savedRow.currency)}.`);
+    });
+
+    // ── Printable view ───────────────────────────────────────────────────────
+    function printInvoice(inv) {
+      const b = ctx.business;
+      $('print-view').innerHTML = `
+        <div class="pv-head">
+          <div><h1>Invoice ${sanitize(invNo(inv.number))}</h1>
+            <div class="pv-muted">Issued ${sanitize(formatDate(inv.created_at, true))}${inv.due_date ? ` · Due ${sanitize(formatDate(inv.due_date, true))}` : ''}</div></div>
+          <div style="text-align:right"><strong>${sanitize(b.name)}</strong><div class="pv-muted">${sanitize(b.reply_to_email || ctx.user.email)}</div></div>
+        </div>
+        <div><strong>Bill to</strong><div class="pv-muted">${sanitize(inv.customer_name)}${inv.customer_email ? '\n' + sanitize(inv.customer_email) : ''}${inv.customer_address ? '\n' + sanitize(inv.customer_address) : ''}</div></div>
+        <table>
+          <thead><tr><th>Description</th><th class="num">Qty</th><th class="num">Unit price</th><th class="num">Amount</th></tr></thead>
+          <tbody>${(inv.items || []).map(i => `<tr><td>${sanitize(i.description)}</td><td class="num">${sanitize(i.quantity)}</td>
+            <td class="num">${sanitize(money(i.unit_price, inv.currency))}</td><td class="num">${sanitize(money(i.quantity * i.unit_price, inv.currency))}</td></tr>`).join('')}</tbody>
+        </table>
+        <div class="pv-totals">
+          <div><span>Subtotal</span><span>${sanitize(money(inv.subtotal, inv.currency))}</span></div>
+          <div><span>Tax (${sanitize(inv.tax_rate)}%)</span><span>${sanitize(money(inv.tax_amount, inv.currency))}</span></div>
+          <div class="grand"><span>Total</span><span>${sanitize(money(inv.total, inv.currency))}</span></div>
+        </div>
+        ${inv.status === 'paid' ? '<p style="margin-top:16px;font-weight:700;">PAID — thank you</p>' : ''}
+        ${inv.notes ? `<p class="pv-muted" style="margin-top:24px;">${sanitize(inv.notes)}</p>` : ''}`;
+      window.print();
+    }
+
+    // ── Row actions ──────────────────────────────────────────────────────────
+    $('invoices-tbody').addEventListener('click', async e => {
+      const btn = e.target.closest('[data-action]');
+      if (!btn) return;
+      const inv = invoices.find(i => i.id === btn.dataset.id);
+      const action = btn.dataset.action;
+      if (action === 'print') return printInvoice(inv);
+      if (action === 'edit') return openEditor(inv);
+      if (action === 'send') return flash('success-msg', 'Sending invoices to customers is coming in the next update. For now, print or save as PDF.');
+      if (action === 'delete' || action === 'delete-cancel') { confirmDelete = action === 'delete' ? inv.id : null; return renderList(); }
+
+      btn.disabled = true;
+      const res = action === 'delete-confirm'
+        ? await supabase.from('invoices').delete().eq('id', inv.id).select('id')
+        : await supabase.from('invoices').update({ status: action }).eq('id', inv.id).select('id');
+      confirmDelete = null;
+      if (res.error || !res.data?.length) { btn.disabled = false; return flash('error-msg', "Couldn't update the invoice. Please try again."); }
+      flash('success-msg', { paid: `${invNo(inv.number)} marked paid.`, void: `${invNo(inv.number)} voided.`, 'delete-confirm': `${invNo(inv.number)} deleted.` }[action]);
+      await loadInvoices();
+    });
+
+    // Pre-fill from a won quote: /dashboard/invoices.html?from_quote=<id>
+    async function startFromQuote(id) {
+      const { data: q } = await supabase.from('quotes')
+        .select('id, customer_name, customer_email, job_description, amount, status').eq('id', id).maybeSingle();
+      if (!q) return flash('error-msg', "Couldn't find that quote.");
+      openEditor({ quote_id: q.id, customer_name: q.customer_name, customer_email: q.customer_email,
+        items: [{ description: q.job_description, quantity: 1, unit_price: Number(q.amount) }] });
+    }
+
+    async function init() {
+      ctx = await getContext();
+      renderSidebar(ctx, 'invoices');
+      if (!ctx.limits.invoicing) { $('not-available').hidden = false; return; }
+      $('list-view').hidden = false;
+      $('new-invoice-btn').hidden = false;
+      await loadInvoices();
+      const fromQuote = new URLSearchParams(location.search).get('from_quote');
+      if (fromQuote) startFromQuote(fromQuote);
+    }
+
+    init().catch(err => {
+      if (!QUIET_ERRORS.includes(err.message)) console.error(err);
+    });
+  </script>
+</body>
+</html>

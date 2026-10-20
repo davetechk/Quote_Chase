@@ -237,6 +237,8 @@
           <div class="detail-actions">
             ${isOpen(q) ? btn('won', 'Mark won', 'won') + btn('lost', 'Mark lost', 'lost') : ''}
             ${q.status === 'sent' ? btn('replied', 'Mark replied', 'reply') + btn(q.paused ? 'resume' : 'pause', q.paused ? 'Resume chasing' : 'Pause chasing') : ''}
+            ${q.status === 'won' && ctx.limits.invoicing
+              ? `<a class="action-btn action-btn--won" href="/dashboard/invoices.html?from_quote=${encodeURIComponent(q.id)}">Create invoice</a>` : ''}
             ${btn('copy', 'Copy customer link')}
             ${btn(q.archived ? 'unarchive' : 'archive', q.archived ? 'Unarchive' : 'Archive')}
             ${ctx.member.role === 'owner' && !confirmingDelete ? btn('delete', 'Delete', 'lost') : ''}
