@@ -12,85 +12,79 @@
   <meta name="theme-color" content="#0F1117">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-
-
 </head>
 <body>
   <div class="dashboard-layout">
 
-    <!-- Sidebar injected here -->
     <div id="sidebar-container"></div>
 
     <div class="dashboard-main">
 
       <!-- Trial banner (shown during trial) -->
-      <div class="trial-banner" id="trial-banner" style="display:none;">
+      <div class="trial-banner" id="trial-banner" hidden>
         <span class="trial-banner__text">
           🎉 You're on a <strong>free trial</strong> — <span id="trial-days-left"></span> days remaining.
         </span>
         <a href="/dashboard/settings.html#billing" class="trial-banner__cta">Upgrade now</a>
       </div>
 
-      <!-- Top bar -->
       <header class="dashboard-header">
         <span class="dashboard-header__title">Dashboard</span>
-        <a href="/dashboard/new-quote.html" class="btn btn--primary btn--sm">+ New Quote</a>
+        <a href="/dashboard/new-quote.html" class="btn btn--primary btn--sm">+ New quote</a>
       </header>
 
       <main class="dashboard-body">
 
         <div class="page-title">Good to see you, <span id="owner-name">—</span> 👋</div>
-        <p class="page-sub">Here's how your quotes are performing.</p>
+        <p class="page-sub">Here's how your quotes are doing.</p>
 
         <div class="alert alert--error" id="error-msg"></div>
 
-        <!-- Stats grid -->
-        <div class="stats-grid" id="stats-grid">
+        <div class="stats-grid">
           <div class="stat-card">
-            <div class="stat-card__label">Total Quotes</div>
-            <div class="stat-card__value" id="stat-total">—</div>
-            <div class="stat-card__sub">all time</div>
+            <div class="stat-card__label">Open quote value</div>
+            <div class="stat-card__value stat-card__value--orange" id="stat-open">—</div>
+            <div class="stat-card__sub">following up or replied</div>
           </div>
           <div class="stat-card">
-            <div class="stat-card__label">Following Up</div>
-            <div class="stat-card__value stat-card__value--yellow" id="stat-followup">—</div>
-            <div class="stat-card__sub">awaiting reply</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-card__label">Jobs Won</div>
+            <div class="stat-card__label">Won this month</div>
             <div class="stat-card__value stat-card__value--green" id="stat-won">—</div>
-            <div class="stat-card__sub">all time</div>
+            <div class="stat-card__sub" id="stat-won-sub">&nbsp;</div>
           </div>
           <div class="stat-card">
-            <div class="stat-card__label">Open Value</div>
-            <div class="stat-card__value stat-card__value--orange" id="stat-value">—</div>
-            <div class="stat-card__sub">quotes still active</div>
+            <div class="stat-card__label">Win rate</div>
+            <div class="stat-card__value" id="stat-rate">—</div>
+            <div class="stat-card__sub" id="stat-rate-sub">won ÷ decided, all time</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card__label">Quotes this month</div>
+            <div class="stat-card__value" id="stat-month">—</div>
+            <div class="stat-card__sub" id="stat-month-sub">&nbsp;</div>
           </div>
         </div>
 
-        <!-- Recent quotes table -->
+        <div class="table-wrap mb-24">
+          <div class="table-header"><span class="table-title">Needs attention</span></div>
+          <div class="list" id="attention-list"><div class="table-empty">Loading…</div></div>
+        </div>
+
+        <div class="table-wrap mb-24">
+          <div class="table-header"><span class="table-title">Recent activity</span></div>
+          <div class="list" id="activity-list"><div class="table-empty">Loading…</div></div>
+        </div>
+
         <div class="table-wrap">
           <div class="table-header">
-            <span class="table-title">Recent Quotes</span>
+            <span class="table-title">Recent quotes</span>
             <a href="/dashboard/quotes.html" class="btn btn--ghost btn--sm">View all →</a>
           </div>
-
           <div class="table-container">
-            <table id="quotes-table">
+            <table>
               <thead>
-                <tr>
-                  <th>Customer</th>
-                  <th>Job</th>
-                  <th>Amount</th>
-                  <th>Status</th>
-                  <th>Sent</th>
-                  <th>Actions</th>
-                </tr>
+                <tr><th>Customer</th><th>Job</th><th>Amount</th><th>Status</th><th>Sent</th><th>Actions</th></tr>
               </thead>
               <tbody id="quotes-tbody">
-                <tr>
-                  <td colspan="6" class="table-empty">Loading quotes…</td>
-                </tr>
+                <tr><td colspan="6" class="table-empty">Loading quotes…</td></tr>
               </tbody>
             </table>
           </div>
@@ -102,126 +96,143 @@
 
   <script type="module">
     import { supabase }                                          from '/js/supabase.js';
-    import { getContext, renderSidebar, hasAccess, showNoAccessBanner,
-             sanitize, formatMoney, statusBadge, QUIET_ERRORS }  from '/js/dashboard.js';
+    import { getContext, renderSidebar, hasAccess, showNoAccessBanner, trialDaysLeft,
+             sanitize, formatMoney, formatDate, statusBadge, eventText, timeAgo,
+             QUIET_ERRORS }                                      from '/js/dashboard.js';
 
-    // ── Format date ──────────────────────────────────────────────────────────
-    function formatDate(iso) {
-      return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+    let ctx = null;
+    let quotes = [];
+    let events = [];
+    const errorMsg = document.getElementById('error-msg');
+    const money = n => formatMoney(n, ctx.business.country);
+    const isOpen = q => (q.status === 'sent' || q.status === 'replied') && !q.archived;
+
+    // ── Stat cards ───────────────────────────────────────────────────────────
+    function renderStats() {
+      const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
+      const openVal  = quotes.filter(isOpen).reduce((s, q) => s + Number(q.amount), 0);
+      const wonMonth = quotes.filter(q => q.status === 'won' && q.closed_at >= monthStart);
+      const won      = quotes.filter(q => q.status === 'won').length;
+      const lost     = quotes.filter(q => q.status === 'lost').length;
+      const sentMonth = quotes.filter(q => q.created_at >= monthStart).length;
+      const limit    = ctx.limits.monthly_quotes;
+
+      document.getElementById('stat-open').textContent = money(openVal);
+      document.getElementById('stat-won').textContent = money(wonMonth.reduce((s, q) => s + Number(q.amount), 0));
+      document.getElementById('stat-won-sub').textContent = `${wonMonth.length} job${wonMonth.length === 1 ? '' : 's'}`;
+      document.getElementById('stat-rate').textContent = won + lost ? Math.round(won / (won + lost) * 100) + '%' : '—';
+      document.getElementById('stat-rate-sub').textContent = won + lost ? `${won} won · ${lost} lost` : 'no decided quotes yet';
+      document.getElementById('stat-month').textContent = limit == null ? sentMonth : `${sentMonth} / ${limit}`;
+      document.getElementById('stat-month-sub').textContent = limit == null ? 'unlimited on your plan' : `${Math.max(0, limit - sentMonth)} left`;
     }
 
-    // ── Update quote status ──────────────────────────────────────────────────
-    async function updateStatus(quoteId, newStatus) {
-      // Won, Lost and Replied all mean the customer answered — stop follow-ups
-      const { error } = await supabase
-        .from('quotes')
-        .update({ status: newStatus })
-        .eq('id', quoteId);
-      if (error) {
-        document.getElementById('error-msg').textContent = 'Failed to update status. Please try again.';
-        document.getElementById('error-msg').classList.add('visible');
-        return;
-      }
-      await loadDashboard();
+    // ── Needs attention: replies, and open quotes opened in the last 48h ─────
+    function renderAttention() {
+      const since = new Date(Date.now() - 48 * 3600e3).toISOString();
+      const items = quotes.filter(q => !q.archived && (q.status === 'replied' ||
+        (q.status === 'sent' && q.last_viewed_at && q.last_viewed_at >= since)));
+      document.getElementById('attention-list').innerHTML = items.length ? items.map(q => `
+        <a class="list-item" href="/dashboard/quotes.html?id=${encodeURIComponent(q.id)}">
+          <span class="list-item__main">
+            <strong>${sanitize(q.customer_name)}</strong>
+            <span class="list-item__sub">${q.status === 'replied'
+              ? 'Replied — get back to them'
+              : `Opened ${sanitize(timeAgo(q.last_viewed_at))} · viewed ${q.view_count}×`}</span>
+          </span>
+          <span class="list-item__end">${sanitize(formatMoney(q.amount, q.currency))}</span>
+        </a>`).join('') : '<div class="table-empty">Nothing needs you right now. 👍</div>';
     }
 
-    // ── Render recent quotes table ───────────────────────────────────────────
-    function renderQuotes(quotes) {
+    // ── Recent activity (last 15 events) ─────────────────────────────────────
+    function renderActivity() {
+      const byId = new Map(quotes.map(q => [q.id, q]));
+      document.getElementById('activity-list').innerHTML = events.length ? events.map(ev => `
+        <div class="list-item">
+          <span class="list-item__main">${sanitize(eventText(ev, byId.get(ev.quote_id)))}</span>
+          <span class="list-item__end text-muted text-xs">${sanitize(timeAgo(ev.created_at))}</span>
+        </div>`).join('') : '<div class="table-empty">No activity yet.</div>';
+    }
+
+    // ── Recent quotes with quick actions ─────────────────────────────────────
+    function renderQuotes() {
+      const recent = quotes.filter(q => !q.archived).slice(0, 10);
       const tbody = document.getElementById('quotes-tbody');
-      if (!quotes.length) {
-        tbody.innerHTML = `
-          <tr>
-            <td colspan="6" class="table-empty">
-              No quotes yet. <a href="/dashboard/new-quote.html" style="color:var(--orange);">Send your first quote →</a>
-            </td>
-          </tr>`;
+      if (!recent.length) {
+        tbody.innerHTML = `<tr><td colspan="6" class="table-empty">
+          No quotes yet. <a href="/dashboard/new-quote.html" style="color:var(--orange);">Send your first quote →</a></td></tr>`;
         return;
       }
-
-      tbody.innerHTML = quotes.map(q => {
-        const canAct = q.status !== 'won' && q.status !== 'lost';
-        const actions = canAct ? `
-          <div style="display:flex;gap:6px;flex-wrap:wrap;">
-            <button class="action-btn action-btn--won"   data-id="${q.id}" data-action="won">Won</button>
-            <button class="action-btn action-btn--lost"  data-id="${q.id}" data-action="lost">Lost</button>
-            ${q.status !== 'replied' ? `<button class="action-btn action-btn--reply" data-id="${q.id}" data-action="replied">Replied</button>` : ''}
+      tbody.innerHTML = recent.map(q => {
+        const open = q.status === 'sent' || q.status === 'replied';
+        const actions = open ? `
+          <div class="action-row">
+            <button class="action-btn action-btn--won"  data-id="${sanitize(q.id)}" data-action="won">Won</button>
+            <button class="action-btn action-btn--lost" data-id="${sanitize(q.id)}" data-action="lost">Lost</button>
+            ${q.status === 'sent' ? `<button class="action-btn action-btn--reply" data-id="${sanitize(q.id)}" data-action="replied">Replied</button>` : ''}
           </div>` : '<span class="text-muted text-xs">—</span>';
-
         return `
           <tr>
             <td data-label="Customer">${sanitize(q.customer_name)}</td>
-            <td data-label="Job" style="max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${sanitize(q.job_description)}</td>
-            <td data-label="Amount" style="white-space:nowrap;font-weight:700;color:var(--text);">${formatMoney(q.amount, q.currency)}</td>
+            <td data-label="Job" class="cell-clip">${sanitize(q.job_description)}</td>
+            <td data-label="Amount" class="cell-amount">${sanitize(formatMoney(q.amount, q.currency))}</td>
             <td data-label="Status">${statusBadge(q)}</td>
-            <td data-label="Sent" style="white-space:nowrap;color:var(--text-3);">${formatDate(q.created_at)}</td>
+            <td data-label="Sent" class="cell-muted">${sanitize(formatDate(q.sent_at || q.created_at))}</td>
             <td data-label="Actions">${actions}</td>
           </tr>`;
       }).join('');
     }
 
-    // ── Render stats ─────────────────────────────────────────────────────────
-    function renderStats(quotes) {
-      const total    = quotes.length;
-      const followup = quotes.filter(q => q.status === 'sent' || q.status === 'followup').length;
-      const won      = quotes.filter(q => q.status === 'won').length;
-      const openVal  = quotes
-        .filter(q => ['sent', 'followup', 'replied'].includes(q.status))
-        .reduce((sum, q) => sum + Number(q.amount), 0);
+    function render() { renderStats(); renderAttention(); renderActivity(); renderQuotes(); }
 
-      document.getElementById('stat-total').textContent   = total;
-      document.getElementById('stat-followup').textContent = followup;
-      document.getElementById('stat-won').textContent     = won;
-      document.getElementById('stat-value').textContent   = formatMoney(openVal, ctx.business.country);
-    }
-
-    // ── Trial banner ─────────────────────────────────────────────────────────
-    function renderTrialBanner(business) {
-      if (business.status !== 'trialing') return;
-      const trialEnd  = new Date(business.trial_ends_at);
-      const now       = new Date();
-      const daysLeft  = Math.ceil((trialEnd - now) / (1000 * 60 * 60 * 24));
-      if (daysLeft > 0) {
-        const banner = document.getElementById('trial-banner');
-        document.getElementById('trial-days-left').textContent = daysLeft;
-        banner.style.display = 'flex';
-      }
-    }
-
-    // ── Main load ────────────────────────────────────────────────────────────
-    let ctx = null;
-
-    async function loadDashboard() {
-      const { data: quotes, error } = await supabase
-        .from('quotes')
-        .select('*')
-        .eq('business_id', ctx.business.id)
-        .order('created_at', { ascending: false })
-        .limit(10);
-
-      if (error) {
-        document.getElementById('quotes-tbody').innerHTML =
-          '<tr><td colspan="6" class="table-empty">Failed to load quotes.</td></tr>';
+    async function load() {
+      const [q, e] = await Promise.all([
+        supabase.from('quotes')
+          .select('id, customer_name, job_description, amount, currency, status, paused, archived, view_count, last_viewed_at, sent_at, closed_at, created_at')
+          .eq('business_id', ctx.business.id)
+          .order('created_at', { ascending: false }),
+        supabase.from('quote_events')
+          .select('id, quote_id, type, detail, created_at')
+          .eq('business_id', ctx.business.id)
+          .order('created_at', { ascending: false })
+          .limit(15),
+      ]);
+      if (q.error || e.error) {
+        errorMsg.textContent = 'Failed to load your quotes. Please refresh.';
+        errorMsg.classList.add('visible');
         return;
       }
-
-      renderStats(quotes || []);
-      renderQuotes(quotes || []);
+      quotes = q.data;
+      events = e.data;
+      render();
     }
 
-    // ── Init ─────────────────────────────────────────────────────────────────
+    // ── Won / Lost / Replied ─────────────────────────────────────────────────
+    document.getElementById('quotes-tbody').addEventListener('click', async e => {
+      const btn = e.target.closest('[data-action]');
+      if (!btn) return;
+      btn.disabled = true;
+      const { error } = await supabase.from('quotes').update({ status: btn.dataset.action }).eq('id', btn.dataset.id);
+      if (error) {
+        btn.disabled = false;
+        errorMsg.textContent = 'Failed to update the quote. Please try again.';
+        errorMsg.classList.add('visible');
+        return;
+      }
+      errorMsg.classList.remove('visible');
+      await load();
+    });
+
     async function init() {
       ctx = await getContext();
       renderSidebar(ctx, 'dashboard');
-      renderTrialBanner(ctx.business);
       document.getElementById('owner-name').textContent = ctx.member.full_name || ctx.business.name || 'there';
+      if (ctx.business.status === 'trialing' && hasAccess(ctx.business)) {
+        document.getElementById('trial-days-left').textContent = trialDaysLeft(ctx.business);
+        document.getElementById('trial-banner').hidden = false;
+      }
       if (!hasAccess(ctx.business)) showNoAccessBanner();
-      await loadDashboard();
+      await load();
     }
-
-    document.getElementById('quotes-tbody').addEventListener('click', e => {
-      const btn = e.target.closest('[data-action]');
-      if (btn) updateStatus(btn.dataset.id, btn.dataset.action);
-    });
 
     init().catch(err => {
       if (!QUIET_ERRORS.includes(err.message)) console.error(err);

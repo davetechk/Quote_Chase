@@ -118,7 +118,7 @@ export function eventText(ev, quote) {
     case 'accepted':      return `${who} accepted ${amount}`;
     case 'declined':      return `${who} declined the quote`;
     case 'question':      return `${who} asked: “${d.message || ''}”`;
-    case 'status_changed':return `Marked ${d.to || 'updated'}${d.from ? ` (was ${d.from})` : ''}`;
+    case 'status_changed':return `Quote for ${who} marked ${d.to || 'updated'}`;
     case 'send_failed':   return `Couldn't send to ${who}${d.channel ? ` by ${d.channel}` : ''}${d.error ? ` — ${d.error}` : ''}`;
     default:              return ev.type;
   }

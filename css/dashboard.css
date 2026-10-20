@@ -305,6 +305,31 @@ tbody td:first-child { color: var(--text); font-weight: 600; }
   font-size: 0.9rem;
 }
 
+/* Common cells */
+.cell-clip   { max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cell-amount { white-space: nowrap; font-weight: 700; color: var(--text); }
+.cell-muted  { white-space: nowrap; color: var(--text-3); }
+
+/* ─── Simple lists (needs attention, activity, timelines) ─────────────────────── */
+.list-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 24px;
+  font-size: 0.875rem;
+  color: var(--text-2);
+}
+.list-item + .list-item { border-top: 1px solid var(--border); }
+a.list-item:hover { background: var(--bg-3); }
+.list-item__main { display: flex; flex-direction: column; gap: 2px; min-width: 0; overflow-wrap: anywhere; }
+.list-item__main strong { color: var(--text); }
+.list-item__sub { font-size: 0.8rem; color: var(--text-3); }
+.list-item__end { flex-shrink: 0; font-weight: 700; color: var(--text); white-space: nowrap; }
+@media (max-width: 640px) { .list-item { padding: 12px 16px; } }
+
+.action-row { display: flex; gap: 6px; flex-wrap: wrap; }
+
 /* ─── Action buttons in table ────────────────────────────────────────────────── */
 .action-btn {
   padding: 5px 12px;
