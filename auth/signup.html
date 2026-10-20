@@ -39,13 +39,13 @@
         </svg>
       </div>
 
-      <h1 class="auth-card__title">Start your free trial</h1>
-      <p class="auth-card__sub">14 days free. No card required. Win more jobs from your quotes.</p>
+      <h1 class="auth-card__title" id="signup-title">Start your free trial</h1>
+      <p class="auth-card__sub" id="signup-sub">14 days free. No card required. Win more jobs from your quotes.</p>
 
       <div class="alert alert--error"   id="error-msg"   role="alert"></div>
       <div class="alert alert--success" id="success-msg" role="status"></div>
 
-      <div class="form-group">
+      <div class="form-group" id="business-group">
         <label class="form-label" for="business-name">Business name</label>
         <input class="form-input" type="text" id="business-name" name="business-name"
                placeholder="Smith Roofing Ltd" autocomplete="organization" required />
@@ -89,7 +89,7 @@
   </div>
 
   <script type="module">
-    import { signUp, getSession } from '/js/auth.js';
+    import { signUp, getSession, friendlyAuthError } from '/js/auth.js';
     import { trackVisit } from '/js/tracker.js';
 
     trackVisit();
@@ -109,9 +109,18 @@
     const errorMsg          = document.getElementById('error-msg');
     const successMsg        = document.getElementById('success-msg');
 
+    // Invite mode: /auth/signup.html?invite=<token> joins an existing team
+    const inviteToken = new URLSearchParams(location.search).get('invite');
+    if (inviteToken) {
+      document.getElementById('business-group').hidden = true;
+      document.getElementById('signup-title').textContent = 'Join your team on QuoteChase';
+      document.getElementById('signup-sub').textContent = 'Create your login to start sending and tracking quotes with your team.';
+      btnText.textContent = 'Join team';
+    }
+
     function setLoading(on) {
       signupBtn.disabled = on;
-      btnText.textContent = on ? 'Creating account…' : 'Create free account';
+      btnText.textContent = on ? 'Creating account…' : inviteToken ? 'Join team' : 'Create free account';
       spinner.classList.toggle('visible', on);
     }
 
@@ -140,7 +149,7 @@
       const email        = emailInput.value.trim();
       const password     = passwordInput.value;
 
-      if (!businessName || !ownerName || !email || !password) {
+      if ((!businessName && !inviteToken) || !ownerName || !email || !password) {
         showError('Please fill in all fields.');
         return;
       }
@@ -151,8 +160,11 @@
 
       setLoading(true);
       try {
-        // The database creates the profile row from this metadata
-        const authData = await signUp(email, password, { business_name: businessName, owner_name: ownerName });
+        // The database creates the business + owner (or joins the invite's team) from this metadata
+        const metadata = inviteToken
+          ? { full_name: ownerName, invite_token: inviteToken }
+          : { business_name: businessName, full_name: ownerName };
+        const authData = await signUp(email, password, metadata);
 
         if (!authData?.session) {
           // Email confirmation is on — no session until they confirm
@@ -161,15 +173,13 @@
           return;
         }
 
-        window.location.href = '/auth/onboarding.html';
+        window.location.href = inviteToken ? '/dashboard/index.html' : '/auth/onboarding.html';
 
       } catch (err) {
-        const msg = err.message || '';
-        if (msg.toLowerCase().includes('already registered') || msg.toLowerCase().includes('already been registered')) {
-          showError('An account with this email already exists. Try signing in.');
-        } else {
-          showError(msg || 'Something went wrong. Please try again.');
-        }
+        // A bad invite fails inside the database, which Supabase reports as a generic database error
+        showError(inviteToken && /database error/i.test(err.message || '')
+          ? 'This invite link is invalid or has expired. Ask your team owner for a new one.'
+          : friendlyAuthError(err));
         setLoading(false);
       }
     }

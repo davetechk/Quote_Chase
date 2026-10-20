@@ -223,10 +223,9 @@
         </div>
         <div class="plan-card__quota">40 quotes per month</div>
         <ul class="plan-card__features">
-          <li>Automated follow-ups on day 2, 5, 10 &amp; 20</li>
-          <li>Email + SMS notifications</li>
-          <li>Quote status dashboard</li>
-          <li>Won / Lost tracking</li>
+          <li>Automatic follow-ups on day 2, 5, 10 &amp; 20</li>
+          <li>Email + SMS</li>
+          <li>1 user</li>
         </ul>
         <a href="#" class="plan-btn plan-btn--ghost" id="btn-solo">Start free trial</a>
       </div>
@@ -243,8 +242,7 @@
         <div class="plan-card__quota">150 quotes per month</div>
         <ul class="plan-card__features">
           <li>Everything in Solo</li>
-          <li>Priority email support</li>
-          <li>Custom follow-up messages</li>
+          <li>Up to 10 team members</li>
         </ul>
         <a href="#" class="plan-btn plan-btn--primary" id="btn-crew">Start free trial</a>
       </div>
@@ -260,7 +258,8 @@
         <div class="plan-card__quota">Unlimited quotes</div>
         <ul class="plan-card__features">
           <li>Everything in Crew</li>
-          <li>Early access to new features</li>
+          <li>Unlimited team members</li>
+          <li>Invoicing</li>
         </ul>
         <a href="#" class="plan-btn plan-btn--ghost" id="btn-pro">Start free trial</a>
       </div>
@@ -273,50 +272,28 @@
   </div>
 
   <script type="module">
-    import { getSession } from '/js/auth.js';
+    import { getContext, checkoutUrl, QUIET_ERRORS } from '/js/dashboard.js';
     import { trackVisit } from '/js/tracker.js';
 
     trackVisit();
 
-    // ── Dodo base URLs — no query params here, we build them below ──────────
-    const DODO_BASE = {
-      solo: 'https://checkout.dodopayments.com/buy/pdt_0NgijtDsudaDD1tf3AQZC',
-      crew: 'https://checkout.dodopayments.com/buy/pdt_0Ngil7HrWjMqjw7lOVTzW',
-      pro:  'https://checkout.dodopayments.com/buy/pdt_0NgilRTE6D0F9Hgz9Qi7z',
-    };
-
-    // ── Build Dodo URL keeping square brackets literal (Dodo requires this) ─
-    function dodoUrl(base, userId, email) {
-      let url = `${base}?quantity=1&metadata[user_id]=${encodeURIComponent(userId)}`;
-      if (email) url += `&checkout[email]=${encodeURIComponent(email)}`;
-      url += `&redirect_url=${encodeURIComponent('https://www.getquotechase.com/dashboard/index.html')}`;
-      return url;
-    }
-
-    const errorMsg = document.getElementById('error-msg');
-
     async function init() {
-      try {
-        const session = await getSession();
-        if (!session) {
-          window.location.href = '/auth/login.html';
-          return;
-        }
-
-        const userId = session.user.id;
-        const email  = session.user.email;
-
-        document.getElementById('btn-solo').href = dodoUrl(DODO_BASE.solo, userId, email);
-        document.getElementById('btn-crew').href = dodoUrl(DODO_BASE.crew, userId, email);
-        document.getElementById('btn-pro').href  = dodoUrl(DODO_BASE.pro,  userId, email);
-
-      } catch (err) {
-        errorMsg.textContent = 'Something went wrong. Please refresh.';
-        errorMsg.classList.add('visible');
+      const { user, member, business } = await getContext();
+      if (member.role !== 'owner') {
+        window.location.href = '/dashboard/index.html';
+        throw new Error('no session');
+      }
+      for (const plan of ['solo', 'crew', 'pro']) {
+        document.getElementById('btn-' + plan).href = checkoutUrl(plan, business.id, user.email);
       }
     }
 
-    init();
+    init().catch(err => {
+      if (QUIET_ERRORS.includes(err.message)) return;
+      const errorMsg = document.getElementById('error-msg');
+      errorMsg.textContent = 'Something went wrong. Please refresh.';
+      errorMsg.classList.add('visible');
+    });
   </script>
 </body>
 </html>

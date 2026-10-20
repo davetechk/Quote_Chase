@@ -84,6 +84,18 @@ export function showNoAccessBanner() {
   document.querySelector('.dashboard-body')?.prepend(banner);
 }
 
+// ─── Dodo checkout links (square brackets must stay literal for Dodo) ───────
+const DODO_PRODUCTS = {
+  solo: 'https://checkout.dodopayments.com/buy/pdt_0NgijtDsudaDD1tf3AQZC',
+  crew: 'https://checkout.dodopayments.com/buy/pdt_0Ngil7HrWjMqjw7lOVTzW',
+  pro:  'https://checkout.dodopayments.com/buy/pdt_0NgilRTE6D0F9Hgz9Qi7z',
+};
+export function checkoutUrl(plan, businessId, email) {
+  return `${DODO_PRODUCTS[plan]}?quantity=1&metadata[business_id]=${encodeURIComponent(businessId)}` +
+    (email ? `&checkout[email]=${encodeURIComponent(email)}` : '') +
+    `&redirect_url=${encodeURIComponent(location.origin + '/dashboard/settings.html?paid=1')}`;
+}
+
 // ─── Quote status + activity text (dashboard, quotes) ───────────────────────
 export function statusBadge(q) {
   const label = { sent: 'Following up', replied: 'Replied', won: 'Won', lost: 'Lost' }[q.status] || q.status;

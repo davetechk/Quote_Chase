@@ -72,7 +72,7 @@
   </div>
 
   <script type="module">
-    import { signIn, getSession } from '/js/auth.js';
+    import { signIn, getSession, friendlyAuthError } from '/js/auth.js';
     import { trackVisit } from '/js/tracker.js';
 
     trackVisit();
@@ -119,14 +119,7 @@
         await signIn(email, password);
         window.location.href = '/dashboard/index.html';
       } catch (err) {
-        const msg = err.message || '';
-        if (msg.toLowerCase().includes('invalid login')) {
-          showError('Incorrect email or password. Please try again.');
-        } else if (msg.toLowerCase().includes('email not confirmed')) {
-          showError('Please confirm your email address first. Check your inbox.');
-        } else {
-          showError(msg || 'Something went wrong. Please try again.');
-        }
+        showError(friendlyAuthError(err));
         setLoading(false);
       }
     }

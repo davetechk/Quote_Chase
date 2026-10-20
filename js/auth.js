@@ -48,3 +48,17 @@ export async function updatePassword(newPassword) {
   const { error } = await supabase.auth.updateUser({ password: newPassword });
   if (error) throw error;
 }
+
+// ─── Plain-English auth errors (never show raw server text) ─────────────────
+export function friendlyAuthError(err) {
+  const m = (err?.message || '').toLowerCase();
+  if (m.includes('already registered') || m.includes('already been registered')) return 'An account with this email already exists. Try signing in.';
+  if (m.includes('invalid login')) return 'Incorrect email or password. Please try again.';
+  if (m.includes('email not confirmed')) return 'Please confirm your email address first. Check your inbox.';
+  if (m.includes('rate limit') || m.includes('too many') || err?.status === 429) return 'Too many attempts. Please wait a minute and try again.';
+  if (m.includes('valid email') || m.includes('invalid email')) return 'Please enter a valid email address.';
+  if (m.includes('different from the old')) return "Choose a password you haven't used before.";
+  if (m.includes('password')) return 'Please choose a stronger password (at least 8 characters).';
+  if (m.includes('failed to fetch') || m.includes('network')) return "Can't reach QuoteChase. Check your connection and try again.";
+  return 'Something went wrong. Please try again.';
+}
