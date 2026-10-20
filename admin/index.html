@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="robots" content="noindex,nofollow">
   <title>Admin — QuoteChase</title>
   <link rel="stylesheet" href="../css/main.css" />
   <link rel="stylesheet" href="../css/dashboard.css" />
@@ -13,227 +14,193 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <style>
-    .admin-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 32px; }
-    @media (max-width: 900px) { .admin-grid { grid-template-columns: repeat(2,1fr); } }
-    @media (max-width: 480px) { .admin-grid { grid-template-columns: 1fr; } }
-    .admin-stat { background: var(--bg-2); border: 1.5px solid var(--border); border-radius: var(--radius-lg); padding: 20px 24px; }
-    .admin-stat__label { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text-3); margin-bottom: 8px; }
-    .admin-stat__value { font-size: 1.8rem; font-weight: 800; letter-spacing: -0.03em; color: var(--text); line-height: 1; }
-    .admin-stat__value--orange { color: var(--orange); }
-    .admin-stat__value--green  { color: var(--green); }
-    .admin-section { margin-bottom: 36px; }
-    .admin-section-title { font-size: 0.875rem; font-weight: 700; color: var(--text); margin-bottom: 14px; display: flex; align-items: center; justify-content: space-between; }
-    .admin-section-title span { color: var(--text-3); font-weight: 400; font-size: 0.8rem; }
-    .access-denied { min-height: 100vh; display: flex; align-items: center; justify-content: center; text-align: center; padding: 40px; }
-    .access-denied h1 { font-size: 1.4rem; margin-bottom: 12px; }
-    .access-denied p  { color: var(--text-3); font-size: 0.9rem; margin-bottom: 24px; }
+    .admin-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; margin-bottom: 28px; }
+    .admin-stat { background: var(--bg-2); border: 1.5px solid var(--border); border-radius: var(--radius-lg); padding: 16px 18px; }
+    .admin-stat__label { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text-3); margin-bottom: 6px; }
+    .admin-stat__value { font-size: 1.6rem; font-weight: 800; letter-spacing: -0.03em; color: var(--text); line-height: 1.1; }
+    .admin-section-title { font-size: 0.9rem; font-weight: 700; margin: 0 0 12px; }
+    .chart-card { background: var(--bg-2); border: 1.5px solid var(--border); border-radius: var(--radius-lg); padding: 16px; margin-bottom: 28px; position: relative; }
+    .chart-legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 0.8rem; color: var(--text-2); margin-bottom: 8px; }
+    .chart-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+    #chart svg { display: block; touch-action: pan-y; }
+    .chart-axis { font-size: 10px; fill: var(--text-3); font-family: var(--font); }
+    .chart-tip {
+      position: absolute; pointer-events: none; background: var(--bg-3); border: 1px solid var(--border-light);
+      border-radius: 8px; padding: 6px 10px; font-size: 0.75rem; color: var(--text); white-space: nowrap; box-shadow: var(--shadow);
+    }
+    .chips { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+    .chip-btn { padding: 6px 14px; border-radius: 100px; border: 1.5px solid var(--border); color: var(--text-2); font-size: 0.8rem; font-weight: 700; }
+    .chip-btn--on { border-color: var(--orange); color: var(--orange); background: var(--orange-dim); }
+    .not-found { min-height: 100vh; display: flex; align-items: center; justify-content: center; text-align: center; color: var(--text-3); }
   </style>
 </head>
 <body>
-
-  <div class="access-denied" id="access-denied" style="display:none;">
-    <div>
-      <div style="font-size:3rem;margin-bottom:16px;">🔒</div>
-      <h1>Admin access only</h1>
-      <p>This page is restricted to QuoteChase administrators.</p>
-      <a href="/dashboard/index.html" class="btn btn--primary">Go to dashboard</a>
-    </div>
-  </div>
-
-  <div class="dashboard-layout" id="admin-panel" style="display:none;">
+  <div class="dashboard-layout">
     <div id="sidebar-container"></div>
     <div class="dashboard-main">
       <header class="dashboard-header">
-        <span class="dashboard-header__title">⚡ Admin Panel</span>
-        <div style="display:flex;gap:8px;align-items:center;">
-          <span class="badge badge--won">Admin</span>
-          <button class="btn btn--ghost btn--sm" id="refresh-btn" type="button">Refresh</button>
-        </div>
+        <span class="dashboard-header__title">Admin</span>
+        <button class="btn btn--ghost btn--sm" id="refresh-btn" type="button">Refresh</button>
       </header>
       <main class="dashboard-body">
-        <div class="page-title">Admin Overview</div>
-        <p class="page-sub" id="admin-updated">Loading…</p>
+        <div class="page-title">Admin overview</div>
+        <p class="page-sub" id="updated">Loading…</p>
+        <div class="alert alert--error" id="error-msg" role="alert"></div>
 
-        <div class="admin-grid">
-          <div class="admin-stat"><div class="admin-stat__label">Total Users</div><div class="admin-stat__value" id="s-users">—</div></div>
-          <div class="admin-stat"><div class="admin-stat__label">Active Subs</div><div class="admin-stat__value admin-stat__value--green" id="s-active">—</div></div>
-          <div class="admin-stat"><div class="admin-stat__label">On Trial</div><div class="admin-stat__value admin-stat__value--orange" id="s-trial">—</div></div>
-          <div class="admin-stat"><div class="admin-stat__label">Total Quotes</div><div class="admin-stat__value" id="s-quotes">—</div></div>
-          <div class="admin-stat"><div class="admin-stat__label">Quotes Won</div><div class="admin-stat__value admin-stat__value--green" id="s-won">—</div></div>
-          <div class="admin-stat"><div class="admin-stat__label">Quotes Active</div><div class="admin-stat__value admin-stat__value--orange" id="s-active-quotes">—</div></div>
-          <div class="admin-stat"><div class="admin-stat__label">MRR (est.)</div><div class="admin-stat__value admin-stat__value--green" id="s-mrr">—</div></div>
-          <div class="admin-stat"><div class="admin-stat__label">Site Visits (30d)</div><div class="admin-stat__value" id="s-visits">—</div></div>
+        <div class="admin-grid" id="stats"></div>
+
+        <div class="admin-section-title">Visitors</div>
+        <div class="admin-grid" id="visitors"></div>
+
+        <div class="admin-section-title">Last 30 days</div>
+        <div class="chart-card">
+          <div class="chart-legend">
+            <span><i style="background:#FF7A00"></i>Visitors</span>
+            <span><i style="background:#60A5FA"></i>Page views</span>
+            <span><i style="background:#16A34A"></i>Signups</span>
+          </div>
+          <div id="chart"></div>
+          <div class="chart-tip" id="chart-tip" hidden></div>
         </div>
 
-        <div class="admin-section">
-          <div class="admin-section-title">All Users <span id="users-count"></span></div>
-          <div class="table-wrap"><div class="table-container">
+        <div class="admin-section-title">Users</div>
+        <div class="chips" id="chips">
+          <button class="chip-btn chip-btn--on" type="button" data-filter="all">All</button>
+          <button class="chip-btn" type="button" data-filter="paid">Paid</button>
+          <button class="chip-btn" type="button" data-filter="trialing">Trialing</button>
+          <button class="chip-btn" type="button" data-filter="expired">Expired</button>
+          <button class="chip-btn" type="button" data-filter="cancelled">Cancelled</button>
+        </div>
+        <div class="table-wrap">
+          <div class="table-container">
             <table>
-              <thead><tr><th>Business</th><th>Owner</th><th>Plan</th><th>Status</th><th>Trial ends</th><th>Quotes</th><th>Joined</th></tr></thead>
-              <tbody id="users-tbody"><tr><td colspan="7" class="table-empty">Loading…</td></tr></tbody>
+              <thead><tr><th>Business</th><th>Owner</th><th>Plan</th><th>Status</th><th>Trial end / renewal</th><th>Members</th><th>Quotes (month / total)</th><th>Signed up</th></tr></thead>
+              <tbody id="users-tbody"><tr><td colspan="8" class="table-empty">Loading…</td></tr></tbody>
             </table>
-          </div></div>
+          </div>
         </div>
-
-        <div class="admin-section">
-          <div class="admin-section-title">Recent Quotes (all users) <span id="recent-quotes-count"></span></div>
-          <div class="table-wrap"><div class="table-container">
-            <table>
-              <thead><tr><th>Business</th><th>Customer</th><th>Amount</th><th>Status</th><th>Follow-ups</th><th>Date</th></tr></thead>
-              <tbody id="quotes-tbody"><tr><td colspan="6" class="table-empty">Loading…</td></tr></tbody>
-            </table>
-          </div></div>
-        </div>
-
-        <div class="admin-section">
-          <div class="admin-section-title">Recent Site Visits</div>
-          <div class="table-wrap"><div class="table-container">
-            <table>
-              <thead><tr><th>Page</th><th>Time</th><th>User Agent</th></tr></thead>
-              <tbody id="visits-tbody"><tr><td colspan="3" class="table-empty">Loading…</td></tr></tbody>
-            </table>
-          </div></div>
-        </div>
-
       </main>
     </div>
   </div>
 
   <script type="module">
-    import { supabase }                              from '/js/supabase.js';
-    import { requireAuth, getProfile, renderSidebar,
-             sanitize }                              from '/js/dashboard.js';
-    import { trackVisit }                            from '/js/tracker.js';
+    import { supabase }                                           from '/js/supabase.js';
+    import { requireAuth, getContext, renderSidebar, sanitize,
+             formatDate, QUIET_ERRORS }                           from '/js/dashboard.js';
 
-    trackVisit('/admin');
+    const $ = id => document.getElementById(id);
+    let users = [];
+    let filter = 'all';
+    let daily = [];
 
-    const ADMIN_EMAILS = [
-      'dave.tech.k@gmail.com',
-    ];
+    const card = (label, value) => `<div class="admin-stat"><div class="admin-stat__label">${label}</div>
+      <div class="admin-stat__value">${sanitize(value ?? '—')}</div></div>`;
+    const gbp = n => '£' + Number(n || 0).toLocaleString('en-GB', { maximumFractionDigits: 0 });
+    const dayLabel = d => new Date(d + 'T00:00:00Z').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' });
 
-
-    // thhth
-    function formatDate(iso) {
-      if (!iso) return '—';
-      return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: '2-digit' });
+    // ── Chart: hand-written SVG, redrawn to the card's width ─────────────────
+    const SERIES = [['visitors', '#FF7A00', 'Visitors'], ['views', '#60A5FA', 'Page views'], ['signups', '#16A34A', 'Signups']];
+    function renderChart() {
+      const box = $('chart'), W = Math.max(260, box.clientWidth), H = 220, P = { l: 34, r: 10, t: 10, b: 26 };
+      if (!daily.length) { box.innerHTML = '<p class="text-xs text-muted">No data yet.</p>'; return; }
+      const n = daily.length, step = n > 1 ? (W - P.l - P.r) / (n - 1) : 0;
+      const max = Math.max(1, ...daily.flatMap(d => SERIES.map(([k]) => Number(d[k]) || 0)));
+      const x = i => P.l + i * step, y = v => H - P.b - (Number(v) || 0) / max * (H - P.t - P.b);
+      const path = k => daily.map((d, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)},${y(d[k]).toFixed(1)}`).join('');
+      const xTicks = [...new Set([0, Math.floor((n - 1) / 2), n - 1])];
+      box.innerHTML = `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="Visitors, page views and signups over the last ${n} days">
+        ${[0, Math.round(max / 2), max].map(t => `<line x1="${P.l}" x2="${W - P.r}" y1="${y(t)}" y2="${y(t)}" stroke="#2E3340"/>
+          <text class="chart-axis" x="${P.l - 6}" y="${y(t) + 3}" text-anchor="end">${t}</text>`).join('')}
+        ${xTicks.map(i => `<text class="chart-axis" x="${x(i)}" y="${H - 8}" text-anchor="${i === 0 ? 'start' : i === n - 1 ? 'end' : 'middle'}">${sanitize(dayLabel(daily[i].day))}</text>`).join('')}
+        ${SERIES.map(([k, c]) => `<path d="${path(k)}" fill="none" stroke="${c}" stroke-width="2" stroke-linejoin="round"/>
+          ${daily.map((d, i) => `<circle cx="${x(i)}" cy="${y(d[k])}" r="${n > 1 ? 2 : 4}" fill="${c}"/>`).join('')}`).join('')}
+        <line id="chart-cursor" y1="${P.t}" y2="${H - P.b}" stroke="#6B7280" stroke-dasharray="3 3" visibility="hidden"/>
+      </svg>`;
+      const svg = box.querySelector('svg'), tip = $('chart-tip'), cursor = $('chart-cursor');
+      const show = e => {
+        const r = svg.getBoundingClientRect();
+        const i = Math.max(0, Math.min(n - 1, Math.round((e.clientX - r.left - P.l) / (step || 1))));
+        const d = daily[i];
+        cursor.setAttribute('x1', x(i)); cursor.setAttribute('x2', x(i)); cursor.setAttribute('visibility', 'visible');
+        tip.textContent = `${dayLabel(d.day)} · ${SERIES.map(([k, , l]) => `${l}: ${Number(d[k]) || 0}`).join(' · ')}`;
+        tip.hidden = false;
+        tip.style.left = Math.min(Math.max(8, x(i) + 16 - tip.offsetWidth / 2), box.clientWidth + 24 - tip.offsetWidth) + 'px';
+        tip.style.top = '8px';
+      };
+      svg.addEventListener('pointermove', show);
+      svg.addEventListener('pointerdown', show);
+      svg.addEventListener('pointerleave', () => { tip.hidden = true; cursor.setAttribute('visibility', 'hidden'); });
     }
-    function formatDateTime(iso) {
-      if (!iso) return '—';
-      return new Date(iso).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
-    }
-    function formatMoney(n) {
-      return '£' + Number(n).toLocaleString('en-GB', { minimumFractionDigits: 0 });
-    }
-    function statusBadge(s) {
-      const m = { sent:'<span class="badge badge--sent">Sent</span>', followup:'<span class="badge badge--followup">Following Up</span>', won:'<span class="badge badge--won">Won</span>', lost:'<span class="badge badge--lost">Lost</span>' };
-      return m[s] || `<span class="badge badge--sent">${sanitize(s)}</span>`;
-    }
-    function subBadge(s) {
-      const m = { active:'<span class="badge badge--won">Active</span>', trial:'<span class="badge badge--followup">Trial</span>', expired:'<span class="badge badge--lost">Expired</span>', cancelled:'<span class="badge badge--lost">Cancelled</span>' };
-      return m[s] || `<span class="badge badge--sent">${sanitize(s)}</span>`;
-    }
+    let resizeFrame;
+    addEventListener('resize', () => { cancelAnimationFrame(resizeFrame); resizeFrame = requestAnimationFrame(renderChart); });
 
-    const PLAN_MRR = { solo: 29, crew: 59, pro: 99 };
+    // ── Users table ──────────────────────────────────────────────────────────
+    const trialActive = u => u.status === 'trialing' && new Date(u.trial_ends_at) > new Date();
+    const FILTERS = {
+      all: () => true,
+      paid: u => u.plan !== 'trial' && ['active', 'past_due'].includes(u.status),
+      trialing: trialActive,
+      expired: u => u.status === 'expired' || (u.status === 'trialing' && !trialActive(u)),
+      cancelled: u => u.status === 'cancelled',
+    };
+    function renderUsers() {
+      const list = users.filter(FILTERS[filter]);
+      $('users-tbody').innerHTML = list.length ? list.map(u => `
+        <tr>
+          <td data-label="Business">${sanitize(u.business_name)}</td>
+          <td data-label="Owner" style="overflow-wrap:anywhere;">${sanitize(u.owner_email)}</td>
+          <td data-label="Plan">${sanitize(u.plan)}</td>
+          <td data-label="Status">${sanitize(u.status === 'trialing' && !trialActive(u) ? 'trial ended' : u.status)}</td>
+          <td data-label="Trial end / renewal" class="cell-muted">${sanitize(formatDate(u.plan === 'trial' ? u.trial_ends_at : u.current_period_end, true))}</td>
+          <td data-label="Members">${sanitize(u.member_count)}</td>
+          <td data-label="Quotes">${sanitize(u.quotes_this_month)} / ${sanitize(u.quote_count)}</td>
+          <td data-label="Signed up" class="cell-muted">${sanitize(formatDate(u.created_at, true))}</td>
+        </tr>`).join('') : '<tr><td colspan="8" class="table-empty">No users in this group.</td></tr>';
+    }
+    $('chips').addEventListener('click', e => {
+      const btn = e.target.closest('[data-filter]');
+      if (!btn) return;
+      filter = btn.dataset.filter;
+      for (const b of $('chips').children) b.classList.toggle('chip-btn--on', b === btn);
+      renderUsers();
+    });
 
-    async function loadAdminData() {
-      document.getElementById('admin-updated').textContent = 'Refreshing…';
-
-      const { data: profiles, error: e1 } = await supabase.rpc('get_all_profiles');
-      if (e1) {
-        document.getElementById('admin-updated').textContent = 'RPC error: ' + e1.message;
-        console.error('get_all_profiles error:', e1);
+    async function load() {
+      const [o, u] = await Promise.all([supabase.rpc('admin_overview'), supabase.rpc('admin_users')]);
+      if (o.error || u.error || !o.data) {
+        $('error-msg').textContent = "Couldn't load admin data. Please refresh.";
+        $('error-msg').classList.add('visible');
         return;
       }
-
-      const { data: quotes,   error: e2 } = await supabase.rpc('get_all_quotes');
-      if (e2) console.error('get_all_quotes error:', e2);
-
-      const { data: visits,   error: e3 } = await supabase.rpc('get_recent_visits');
-      if (e3) console.error('get_recent_visits error:', e3);
-
-      const now = new Date();
-      const totalUsers   = profiles?.length || 0;
-      const activeUsers  = profiles?.filter(p => p.subscription_status === 'active').length || 0;
-      const trialUsers   = profiles?.filter(p => p.subscription_status === 'trial' && now < new Date(p.trial_ends_at)).length || 0;
-      const totalQuotes  = quotes?.length || 0;
-      const wonQuotes    = quotes?.filter(q => q.status === 'won').length || 0;
-      const activeQuotes = quotes?.filter(q => ['sent','followup','replied'].includes(q.status)).length || 0;
-      const mrr          = profiles?.filter(p => p.subscription_status === 'active').reduce((s,p) => s + (PLAN_MRR[p.plan]||0), 0) || 0;
-
-      document.getElementById('s-users').textContent         = totalUsers;
-      document.getElementById('s-active').textContent        = activeUsers;
-      document.getElementById('s-trial').textContent         = trialUsers;
-      document.getElementById('s-quotes').textContent        = totalQuotes;
-      document.getElementById('s-won').textContent           = wonQuotes;
-      document.getElementById('s-active-quotes').textContent = activeQuotes;
-      document.getElementById('s-mrr').textContent           = formatMoney(mrr);
-      document.getElementById('s-visits').textContent        = visits?.length || 0;
-
-      document.getElementById('users-count').textContent = `— ${totalUsers} total`;
-      const qMap = {};
-      (quotes||[]).forEach(q => { qMap[q.business_id] = (qMap[q.business_id]||0)+1; });
-
-      document.getElementById('users-tbody').innerHTML = !profiles?.length
-        ? '<tr><td colspan="7" class="table-empty">No users yet.</td></tr>'
-        : profiles.map(p => `<tr>
-            <td>${sanitize(p.business_name||'—')}</td>
-            <td>${sanitize(p.owner_name||'—')}</td>
-            <td style="text-transform:capitalize;">${sanitize(p.plan||'free')}</td>
-            <td>${subBadge(p.subscription_status)}</td>
-            <td style="color:var(--text-3);">${p.trial_ends_at ? formatDate(p.trial_ends_at) : '—'}</td>
-            <td>${qMap[p.id]||0}</td>
-            <td style="color:var(--text-3);white-space:nowrap;">${formatDate(p.created_at)}</td>
-          </tr>`).join('');
-
-      document.getElementById('recent-quotes-count').textContent = `— ${totalQuotes} shown`;
-      const pMap = new Map((profiles||[]).map(p => [p.id, p.business_name||'—']));
-      document.getElementById('quotes-tbody').innerHTML = !quotes?.length
-        ? '<tr><td colspan="6" class="table-empty">No quotes yet.</td></tr>'
-        : quotes.map(q => {
-            const sent = [q.followup_2_sent,q.followup_5_sent,q.followup_10_sent,q.followup_20_sent].filter(Boolean).length;
-            return `<tr>
-              <td>${sanitize(pMap.get(q.business_id)||'—')}</td>
-              <td>${sanitize(q.customer_name)}</td>
-              <td style="font-weight:700;color:var(--text);white-space:nowrap;">${formatMoney(q.quote_amount)}</td>
-              <td>${statusBadge(q.status)}</td>
-              <td style="color:var(--text-3);font-size:0.8rem;">${sent}/4 sent</td>
-              <td style="color:var(--text-3);white-space:nowrap;">${formatDate(q.created_at)}</td>
-            </tr>`;
-          }).join('');
-
-      document.getElementById('visits-tbody').innerHTML = !visits?.length
-        ? '<tr><td colspan="3" class="table-empty">No visits recorded.</td></tr>'
-        : visits.map(v => `<tr>
-            <td style="font-weight:600;">${sanitize(v.page||'—')}</td>
-            <td style="color:var(--text-3);white-space:nowrap;">${formatDateTime(v.visited_at)}</td>
-            <td style="color:var(--text-3);font-size:0.775rem;max-width:240px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${sanitize(v.user_agent||'—')}</td>
-          </tr>`).join('');
-
-      document.getElementById('admin-updated').textContent = `Last updated: ${new Date().toLocaleTimeString('en-GB')}`;
+      const s = o.data;
+      $('stats').innerHTML = [
+        card('Total users', s.users), card('Paid', s.paid), card('Solo', s.solo), card('Crew', s.crew), card('Pro', s.pro),
+        card('Active trials', s.trialing), card('Expired trials', s.trial_expired), card('Past due', s.past_due),
+        card('Cancelled', s.cancelled), card('MRR', gbp(s.mrr_gbp)), card('Quotes (30 days)', s.quotes_30d),
+      ].join('');
+      $('visitors').innerHTML = [card('Today', s.visitors_today), card('Last 7 days', s.visitors_7d), card('Last 30 days', s.visitors_30d)].join('');
+      daily = s.daily || [];
+      renderChart();
+      users = u.data || [];
+      renderUsers();
+      $('updated').textContent = `Updated ${new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}`;
     }
 
     async function init() {
-      const session = await requireAuth();
-      const profile = await getProfile(session.user.id);
-
-      const userEmail = session.user.email || '';
-      if (!ADMIN_EMAILS.includes(userEmail.toLowerCase())) {
-        document.getElementById('access-denied').style.display = 'flex';
-        return;
+      await requireAuth();
+      const { data: isAdmin } = await supabase.rpc('is_admin');
+      if (isAdmin !== true) {
+        document.body.innerHTML = '<div class="not-found"><div><h1 style="font-size:1.4rem;margin-bottom:8px;">Not found</h1><p>This page doesn’t exist.</p></div></div>';
+        throw new Error('not admin');
       }
-
-      // Admin always has full access — no paywall check here
-      document.getElementById('admin-panel').style.display = 'flex';
-      renderSidebar(profile, 'admin');
-      await loadAdminData();
-      document.getElementById('refresh-btn').addEventListener('click', loadAdminData);
+      try { localStorage.setItem('qc_admin', '1'); } catch (_) {}  // keeps the admin out of visitor stats
+      renderSidebar(await getContext(), 'admin');
+      await load();
+      $('refresh-btn').addEventListener('click', load);
     }
 
     init().catch(err => {
-      if (err.message !== 'no session' && err.message !== 'no profile') {
-        console.error(err);
-        document.getElementById('access-denied').style.display = 'flex';
-      }
+      if (!QUIET_ERRORS.includes(err.message)) console.error(err);
     });
   </script>
 </body>
