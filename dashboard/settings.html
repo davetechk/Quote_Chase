@@ -13,55 +13,26 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <style>
-    .settings-field-row {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 20px;
-    }
+    .settings-field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
     @media (max-width: 500px) { .settings-field-row { grid-template-columns: 1fr; } }
-
     .plan-current-box {
-      background: var(--bg-3);
-      border: 1.5px solid var(--border);
-      border-radius: var(--radius);
-      padding: 20px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 16px;
-      flex-wrap: wrap;
-      margin-bottom: 20px;
+      background: var(--bg-3); border: 1.5px solid var(--border); border-radius: var(--radius);
+      padding: 20px; display: flex; flex-direction: column; gap: 4px; margin-bottom: 20px;
     }
-    .plan-current-box__info { display: flex; flex-direction: column; gap: 4px; }
     .plan-current-box__name { font-weight: 700; font-size: 1rem; color: var(--text); }
-    .plan-current-box__status { font-size: 0.825rem; color: var(--orange); font-weight: 600; }
-
-    .followup-messages { display: flex; flex-direction: column; gap: 20px; }
-    .followup-msg__label {
-      font-size: 0.75rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.07em;
-      color: var(--text-3);
-      margin-bottom: 8px;
-    }
-    .followup-msg__day {
-      font-size: 0.8rem;
-      color: var(--orange);
-      font-weight: 600;
-      margin-bottom: 6px;
-    }
+    .plan-current-box__status { font-size: 0.85rem; color: var(--orange); font-weight: 600; }
+    .followup-msg { margin-bottom: 20px; }
+    .followup-msg__head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 6px; }
+    .followup-msg__day { font-size: 0.85rem; color: var(--orange); font-weight: 700; }
+    .link-btn { font-size: 0.8rem; color: var(--text-3); text-decoration: underline; }
+    .link-btn:hover { color: var(--text); }
     textarea.form-input { resize: vertical; min-height: 90px; }
-
-    .danger-zone {
-      background: var(--bg-2);
-      border: 1.5px solid rgba(220, 38, 38, 0.3);
-      border-radius: var(--radius-lg);
-      padding: 28px 32px;
-      max-width: 640px;
-    }
-    .danger-zone__title { font-size: 0.95rem; font-weight: 700; color: var(--red); margin-bottom: 8px; }
-    .danger-zone__sub   { font-size: 0.85rem; color: var(--text-3); margin-bottom: 20px; }
+    code { background: var(--bg-3); padding: 1px 6px; border-radius: 4px; font-size: 0.85em; color: var(--text-2); }
+    .check { display: flex; gap: 10px; align-items: flex-start; font-size: 0.9rem; color: var(--text-2); cursor: pointer; }
+    .check input { width: 18px; height: 18px; margin-top: 3px; accent-color: var(--orange); flex-shrink: 0; }
+    .team-list { border: 1.5px solid var(--border); border-radius: var(--radius); margin-bottom: 16px; }
+    .team-list .list-item { padding: 12px 16px; }
+    .action-btn--plain { background: var(--bg-3); color: var(--text-2); border-color: var(--border); }
   </style>
 </head>
 <body>
@@ -77,215 +48,320 @@
       <main class="dashboard-body">
 
         <div class="page-title">Settings</div>
-        <p class="page-sub">Manage your business profile, follow-up messages, and billing.</p>
+        <p class="page-sub">Your business, follow-ups, team and plan.</p>
 
-        <!-- ── Business Profile ──────────────────────────────────────────── -->
-        <div class="settings-section">
-          <div class="settings-section__title">Business Profile</div>
-          <div class="settings-section__sub">This info appears on quotes sent to your customers.</div>
-
-          <div class="alert alert--error"   id="profile-error"></div>
-          <div class="alert alert--success" id="profile-success"></div>
+        <!-- ── Business (owner) ──────────────────────────────────────────── -->
+        <section class="settings-section" id="business-section" hidden>
+          <div class="settings-section__title">Business</div>
+          <div class="settings-section__sub">Shown on the quotes and follow-ups your customers receive.</div>
+          <div class="alert" id="business-msg" role="status"></div>
 
           <div class="settings-field-row">
             <div class="form-group">
               <label class="form-label" for="business-name">Business name</label>
-              <input class="form-input" type="text" id="business-name" placeholder="Smith Roofing Ltd" />
+              <input class="form-input" type="text" id="business-name" placeholder="Smith Roofing Ltd" maxlength="120" />
             </div>
             <div class="form-group">
-              <label class="form-label" for="owner-name">Your name</label>
-              <input class="form-input" type="text" id="owner-name" placeholder="John Smith" />
+              <label class="form-label" for="trade">Trade</label>
+              <input class="form-input" type="text" id="trade" list="trade-list" placeholder="Roofer" maxlength="60" />
+              <datalist id="trade-list">
+                <option value="Roofer"></option><option value="Builder"></option><option value="Plumber"></option>
+                <option value="Electrician"></option><option value="Landscaper"></option><option value="Painter &amp; decorator"></option>
+                <option value="Plasterer"></option><option value="Carpenter"></option><option value="HVAC"></option><option value="Other"></option>
+              </datalist>
             </div>
-          </div>
-
-          <div class="form-group">
-            <label class="form-label" for="trade">Trade</label>
-            <select class="form-input" id="trade">
-              <option value="roofer">Roofer</option>
-              <option value="builder">Builder</option>
-              <option value="other">Other</option>
-            </select>
           </div>
 
           <div class="form-group">
             <label class="form-label" for="country">Country</label>
             <select class="form-input" id="country">
-              <option value="GB">United Kingdom</option>
-              <option value="US">United States</option>
+              <option value="GB">United Kingdom (£)</option>
+              <option value="US">United States ($)</option>
             </select>
           </div>
 
-          <button class="btn btn--primary" id="save-profile-btn" type="button">
-            <span id="profile-btn-text">Save changes</span>
-            <span class="spinner" id="profile-spinner"></span>
-          </button>
-        </div>
+          <div class="form-group">
+            <label class="form-label" for="reply-to">Reply-to email</label>
+            <input class="form-input" type="email" id="reply-to" inputmode="email" placeholder="you@yourbusiness.co.uk" />
+            <p class="form-hint">Customer replies go here — defaults to your login email.</p>
+          </div>
 
-        <!-- ── Follow-up Messages ────────────────────────────────────────── -->
-        <div class="settings-section">
-          <div class="settings-section__title">Follow-up Messages</div>
+          <div class="form-group">
+            <label class="form-label" for="booking-url">Booking link (optional)</label>
+            <input class="form-input" type="url" id="booking-url" inputmode="url" placeholder="https://calendly.com/your-name" />
+            <p class="form-hint">Adds a “Book a call” button to your quote page. Must start with https://</p>
+          </div>
+
+          <button class="btn btn--primary" id="save-business-btn" type="button">Save business</button>
+        </section>
+
+        <!-- ── Follow-up messages (owner) ────────────────────────────────── -->
+        <section class="settings-section" id="messages-section" hidden>
+          <div class="settings-section__title">Follow-up messages</div>
           <div class="settings-section__sub">
-            Customise what gets sent to customers. Use <code style="background:var(--bg-3);padding:1px 5px;border-radius:4px;font-size:0.8em;">{{name}}</code> for the customer's name and <code style="background:var(--bg-3);padding:1px 5px;border-radius:4px;font-size:0.8em;">{{amount}}</code> for the quote value.
+            Sent if the customer hasn't answered. Use <code>{{name}}</code> customer's name, <code>{{amount}}</code> quote total,
+            <code>{{business}}</code> your business name, <code>{{link}}</code> link to the quote.
           </div>
+          <div class="alert" id="messages-msg" role="status"></div>
+          <div id="messages-list"></div>
+          <button class="btn btn--primary" id="save-messages-btn" type="button">Save messages</button>
+        </section>
 
-          <div class="alert alert--error"   id="msgs-error"></div>
-          <div class="alert alert--success" id="msgs-success"></div>
-
-          <div class="followup-messages">
-
-            <div>
-              <div class="followup-msg__day">Day 2</div>
-              <div class="followup-msg__label">First nudge — friendly reminder</div>
-              <textarea class="form-input" id="msg-day2" rows="3"></textarea>
-            </div>
-
-            <div>
-              <div class="followup-msg__day">Day 5</div>
-              <div class="followup-msg__label">Second follow-up — slightly firmer</div>
-              <textarea class="form-input" id="msg-day5" rows="3"></textarea>
-            </div>
-
-            <div>
-              <div class="followup-msg__day">Day 10</div>
-              <div class="followup-msg__label">Third follow-up — create some urgency</div>
-              <textarea class="form-input" id="msg-day10" rows="3"></textarea>
-            </div>
-
-            <div>
-              <div class="followup-msg__day">Day 20</div>
-              <div class="followup-msg__label">Final follow-up — last chance</div>
-              <textarea class="form-input" id="msg-day20" rows="3"></textarea>
-            </div>
-
+        <!-- ── My details (everyone) ─────────────────────────────────────── -->
+        <section class="settings-section">
+          <div class="settings-section__title">My details</div>
+          <div class="settings-section__sub" id="my-email"></div>
+          <div class="alert" id="me-msg" role="status"></div>
+          <div class="form-group">
+            <label class="form-label" for="full-name">Your name</label>
+            <input class="form-input" type="text" id="full-name" placeholder="John Smith" maxlength="80" />
           </div>
+          <div class="form-group">
+            <label class="check">
+              <input type="checkbox" id="notify-email" />
+              <span>Email me when a customer opens, replies to or accepts a quote</span>
+            </label>
+          </div>
+          <button class="btn btn--primary" id="save-me-btn" type="button">Save my details</button>
+        </section>
 
-          <button class="btn btn--primary mt-24" id="save-msgs-btn" type="button">
-            <span id="msgs-btn-text">Save messages</span>
-            <span class="spinner" id="msgs-spinner"></span>
-          </button>
-        </div>
+        <!-- ── Team (owner) ──────────────────────────────────────────────── -->
+        <section class="settings-section" id="team-section" hidden>
+          <div class="settings-section__title">Team</div>
+          <div class="settings-section__sub" id="seat-usage"></div>
+          <div class="alert" id="team-msg" role="status"></div>
+          <div class="team-list" id="members-list"></div>
+          <div id="invites-wrap" hidden>
+            <div class="form-label">Pending invites</div>
+            <div class="team-list" id="invites-list"></div>
+          </div>
+          <button class="btn btn--ghost" id="invite-btn" type="button">+ Invite team member</button>
+        </section>
 
-        <!-- ── Billing ───────────────────────────────────────────────────── -->
-        <div class="settings-section" id="billing">
-          <div class="settings-section__title">Plan &amp; Billing</div>
-          <div class="settings-section__sub">Your current plan and subscription options.</div>
-
-          <!-- Current plan -->
+        <!-- ── Billing (owner sees plan buttons) ─────────────────────────── -->
+        <section class="settings-section" id="billing">
+          <div class="settings-section__title">Plan &amp; billing</div>
+          <div class="settings-section__sub">Prices per month. Cancel any time.</div>
+          <div class="alert" id="billing-msg" role="status"></div>
           <div class="plan-current-box">
-            <div class="plan-current-box__info">
-              <div class="plan-current-box__name" id="current-plan-name">—</div>
-              <div class="plan-current-box__status" id="current-plan-status">—</div>
-            </div>
-            <div style="font-size:0.825rem;color:var(--text-3);" id="current-plan-quota">—</div>
+            <div class="plan-current-box__name" id="plan-name">—</div>
+            <div class="plan-current-box__status" id="plan-status">—</div>
           </div>
-
-          <!-- Plan options -->
-          <div class="billing-plans" id="billing-plans">
-
-            <div class="billing-plan" id="billing-solo">
-              <div class="billing-plan__name">Solo</div>
-              <div class="billing-plan__price">£29<span style="font-size:0.9rem;font-weight:400;color:var(--text-3);">/mo</span></div>
-              <div class="billing-plan__quota">40 quotes/month</div>
-            </div>
-
-            <div class="billing-plan" id="billing-crew">
-              <div class="billing-plan__name">Crew</div>
-              <div class="billing-plan__price">£59<span style="font-size:0.9rem;font-weight:400;color:var(--text-3);">/mo</span></div>
-              <div class="billing-plan__quota">150 quotes/month</div>
-            </div>
-
-            <div class="billing-plan" id="billing-pro">
-              <div class="billing-plan__name">Pro</div>
-              <div class="billing-plan__price">£99<span style="font-size:0.9rem;font-weight:400;color:var(--text-3);">/mo</span></div>
-              <div class="billing-plan__quota">Unlimited quotes</div>
-            </div>
-
+          <div class="billing-plans" id="billing-plans" hidden>
+            <a class="billing-plan" id="buy-solo"><div class="billing-plan__name">Solo</div>
+              <div class="billing-plan__price">£29</div><div class="billing-plan__quota">40 quotes/month · 1 user</div></a>
+            <a class="billing-plan" id="buy-crew"><div class="billing-plan__name">Crew</div>
+              <div class="billing-plan__price">£59</div><div class="billing-plan__quota">150 quotes/month · up to 10 users</div></a>
+            <a class="billing-plan" id="buy-pro"><div class="billing-plan__name">Pro</div>
+              <div class="billing-plan__price">£99</div><div class="billing-plan__quota">Unlimited quotes &amp; team · invoicing</div></a>
           </div>
-
-          <div id="billing-actions" style="display:flex;gap:12px;flex-wrap:wrap;"></div>
-
-        </div>
+          <p class="text-sm" id="billing-owner-note" hidden>
+            <a class="text-orange" href="mailto:hello@getquotechase.com?subject=Manage%20my%20QuoteChase%20subscription">Manage or cancel subscription</a>
+            · To delete your account, email <a class="text-orange" href="mailto:hello@getquotechase.com">hello@getquotechase.com</a>.
+          </p>
+        </section>
 
       </main>
     </div>
   </div>
 
   <script type="module">
-    import { supabase }                                     from '/js/supabase.js';
-    import { getContext, renderSidebar, planLabel, trialDaysLeft, QUIET_ERRORS } from '/js/dashboard.js';
+    import { supabase }                                      from '/js/supabase.js';
+    import { getContext, renderSidebar, planLabel, trialDaysLeft, hasAccess,
+             formatDate, sanitize, checkoutUrl, QUIET_ERRORS }  from '/js/dashboard.js';
 
-    // Default follow-up messages (fallback if none saved)
     const DEFAULT_MESSAGES = {
-      day2:  `Hi {{name}}, just following up on the quote I sent for {{amount}}. Happy to answer any questions — just reply to this message. {{business}}`,
-      day5:  `Hi {{name}}, wanted to check in on the roofing quote for {{amount}}. If you're comparing a few options, I'm happy to talk through what's included. {{business}}`,
-      day10: `Hi {{name}}, still have availability for your job and the quote for {{amount}} still stands. Let me know either way — happy to help. {{business}}`,
-      day20: `Hi {{name}}, last follow-up on the quote for {{amount}}. If you've gone with someone else, no worries — but if you're still looking, I'd love to help. {{business}}`,
+      day2:  'Hi {{name}}, just checking you got my quote for {{amount}}. Happy to answer any questions.',
+      day5:  "Hi {{name}}, following up on the quote for {{amount}}. If you're comparing options, I'm happy to talk through what's included.",
+      day10: 'Hi {{name}}, I still have availability for your job and the quote for {{amount}} still stands. Let me know either way.',
+      day20: "Hi {{name}}, last follow-up on the quote for {{amount}}. If you've gone another way, no problem. If you're still deciding, I'd be glad to help.",
     };
+    const DAYS = { day2: 'Day 2', day5: 'Day 5', day10: 'Day 10', day20: 'Day 20' };
 
     let ctx = null;
+    let removing = null; // member user_id awaiting the in-page confirm
+    const $ = id => document.getElementById(id);
+    const isOwner = () => ctx.member.role === 'owner';
 
-    // ── Loading helpers ────────────────────────────────────────────────────
-    function setLoading(btnId, textId, spinnerId, on, idleText) {
-      document.getElementById(btnId).disabled = on;
-      document.getElementById(textId).textContent = on ? 'Saving…' : idleText;
-      document.getElementById(spinnerId).classList.toggle('visible', on);
-    }
-
-    function showAlert(id, msg) {
-      const el = document.getElementById(id);
+    function say(id, msg, ok = true) {
+      const el = $(id);
+      el.className = `alert visible alert--${ok ? 'success' : 'error'}`;
       el.textContent = msg;
-      el.classList.add('visible');
-      setTimeout(() => el.classList.remove('visible'), 4000);
+      if (ok) setTimeout(() => el.classList.remove('visible'), 4000);
     }
 
-    // ── Populate forms ────────────────────────────────────────────────────
-    function populate({ member, business }) {
-      document.getElementById('business-name').value = business.name || '';
-      document.getElementById('owner-name').value    = member.full_name || '';
-      document.getElementById('trade').value         = business.trade || 'roofer';
-      document.getElementById('country').value       = business.country || 'GB';
-      const msgs = { ...DEFAULT_MESSAGES, ...(business.followup_templates || {}) };
-      for (const k of ['day2', 'day5', 'day10', 'day20']) document.getElementById('msg-' + k).value = msgs[k] || DEFAULT_MESSAGES[k];
+    async function busy(btn, fn) {
+      btn.disabled = true;
+      try { await fn(); } finally { btn.disabled = false; }
     }
 
-    function renderBilling({ business }) {
-      document.getElementById('current-plan-name').textContent = planLabel(business);
-      document.getElementById('current-plan-status').textContent =
-        business.status === 'trialing' ? `Trial ends in ${trialDaysLeft(business)} days` : business.status;
-      document.getElementById('current-plan-quota').textContent = '';
+    // A write must come back with the row — RLS silently skips rows you can't touch
+    const saved = res => !res.error && res.data?.length > 0;
+
+    // ── Business ─────────────────────────────────────────────────────────────
+    function fillBusiness(b) {
+      $('business-name').value = b.name || '';
+      $('trade').value         = b.trade || '';
+      $('country').value       = b.country || 'GB';
+      $('reply-to').value      = b.reply_to_email || '';
+      $('booking-url').value   = b.booking_url || '';
     }
 
-    async function saveProfile() {
-      setLoading('save-profile-btn', 'profile-btn-text', 'profile-spinner', true, 'Save changes');
-      const name = document.getElementById('business-name').value.trim();
-      const fullName = document.getElementById('owner-name').value.trim();
-      const { error } = await supabase.from('businesses')
-        .update({ name, trade: document.getElementById('trade').value, country: document.getElementById('country').value })
-        .eq('id', ctx.business.id);
-      const { error: mErr } = await supabase.from('members').update({ full_name: fullName }).eq('user_id', ctx.user.id);
-      showAlert(error || mErr ? 'profile-error' : 'profile-success', error || mErr ? 'Failed to save. Please try again.' : 'Profile saved.');
-      setLoading('save-profile-btn', 'profile-btn-text', 'profile-spinner', false, 'Save changes');
+    $('save-business-btn').addEventListener('click', e => busy(e.currentTarget, async () => {
+      const name = $('business-name').value.trim();
+      const replyTo = $('reply-to').value.trim();
+      const booking = $('booking-url').value.trim();
+      if (!name) return say('business-msg', 'Business name is required.', false);
+      if (replyTo && !$('reply-to').checkValidity()) return say('business-msg', 'That reply-to email address looks wrong.', false);
+      if (booking && !/^https:\/\/\S+\.\S+/i.test(booking)) return say('business-msg', 'Booking link must start with https://', false);
+      const update = { name, trade: $('trade').value.trim() || null, country: $('country').value,
+        reply_to_email: replyTo || null, booking_url: booking || null };
+      const res = await supabase.from('businesses').update(update).eq('id', ctx.business.id).select('id');
+      if (!saved(res)) return say('business-msg', "Couldn't save. Please try again.", false);
+      Object.assign(ctx.business, update);
+      say('business-msg', 'Business saved.');
+    }));
+
+    // ── Follow-up messages ───────────────────────────────────────────────────
+    function fillMessages(b) {
+      const current = b.followup_templates || {};
+      $('messages-list').innerHTML = Object.keys(DAYS).map(k => `
+        <div class="followup-msg">
+          <div class="followup-msg__head">
+            <label class="followup-msg__day" for="msg-${k}">${DAYS[k]}</label>
+            <button class="link-btn" type="button" data-reset="${k}">Reset to default</button>
+          </div>
+          <textarea class="form-input" id="msg-${k}" rows="3" maxlength="1000"></textarea>
+        </div>`).join('');
+      for (const k of Object.keys(DAYS)) $('msg-' + k).value = current[k] || DEFAULT_MESSAGES[k];
     }
 
-    async function saveMessages() {
-      setLoading('save-msgs-btn', 'msgs-btn-text', 'msgs-spinner', true, 'Save messages');
+    $('messages-list').addEventListener('click', e => {
+      const k = e.target.dataset.reset;
+      if (k) $('msg-' + k).value = DEFAULT_MESSAGES[k];
+    });
+
+    $('save-messages-btn').addEventListener('click', e => busy(e.currentTarget, async () => {
       const followup_templates = {};
-      for (const k of ['day2', 'day5', 'day10', 'day20']) followup_templates[k] = document.getElementById('msg-' + k).value.trim();
-      const { error } = await supabase.from('businesses').update({ followup_templates }).eq('id', ctx.business.id);
-      showAlert(error ? 'msgs-error' : 'msgs-success', error ? 'Failed to save messages. Please try again.' : 'Follow-up messages saved.');
-      setLoading('save-msgs-btn', 'msgs-btn-text', 'msgs-spinner', false, 'Save messages');
+      for (const k of Object.keys(DAYS)) followup_templates[k] = $('msg-' + k).value.trim() || DEFAULT_MESSAGES[k];
+      const res = await supabase.from('businesses').update({ followup_templates }).eq('id', ctx.business.id).select('id');
+      if (!saved(res)) return say('messages-msg', "Couldn't save the messages. Please try again.", false);
+      ctx.business.followup_templates = followup_templates;
+      say('messages-msg', 'Follow-up messages saved.');
+    }));
+
+    // ── My details ───────────────────────────────────────────────────────────
+    $('save-me-btn').addEventListener('click', e => busy(e.currentTarget, async () => {
+      const full_name = $('full-name').value.trim();
+      if (!full_name) return say('me-msg', 'Please enter your name.', false);
+      const res = await supabase.from('members')
+        .update({ full_name, notify_email: $('notify-email').checked })
+        .eq('user_id', ctx.user.id).select('user_id');
+      if (!saved(res)) return say('me-msg', "Couldn't save. Please try again.", false);
+      say('me-msg', 'Your details are saved.');
+    }));
+
+    // ── Team ─────────────────────────────────────────────────────────────────
+    async function loadTeam() {
+      const [m, i] = await Promise.all([
+        supabase.from('members').select('user_id, full_name, email, role, created_at')
+          .eq('business_id', ctx.business.id).order('created_at', { ascending: true }),
+        supabase.from('invites').select('id, email, expires_at, accepted_at, created_at')
+          .eq('business_id', ctx.business.id).is('accepted_at', null).order('created_at', { ascending: false }),
+      ]);
+      if (m.error) return say('team-msg', "Couldn't load your team.", false);
+      const seats = ctx.limits.seats;
+      $('seat-usage').textContent = seats == null
+        ? `${m.data.length} member${m.data.length === 1 ? '' : 's'} · unlimited seats`
+        : `${m.data.length} of ${seats} seat${seats === 1 ? '' : 's'} used`;
+      $('members-list').innerHTML = m.data.map(p => `
+        <div class="list-item">
+          <span class="list-item__main"><strong>${sanitize(p.full_name || p.email)}</strong>
+            <span class="list-item__sub">${sanitize(p.email)} · ${p.role === 'owner' ? 'Owner' : 'Team member'}</span></span>
+          ${p.role === 'owner' ? '' : removing === p.user_id
+            ? `<span class="action-row"><button class="action-btn action-btn--lost" type="button" data-remove-confirm="${sanitize(p.user_id)}">Remove</button>
+                 <button class="action-btn action-btn--plain" type="button" data-remove-cancel="1">Cancel</button></span>`
+            : `<button class="action-btn action-btn--lost" type="button" data-remove="${sanitize(p.user_id)}">Remove</button>`}
+        </div>`).join('');
+      const invites = (i.data || []).filter(v => new Date(v.expires_at) > new Date());
+      $('invites-wrap').hidden = !invites.length;
+      $('invites-list').innerHTML = invites.map(v => `
+        <div class="list-item">
+          <span class="list-item__main">${sanitize(v.email)}<span class="list-item__sub">Expires ${sanitize(formatDate(v.expires_at))}</span></span>
+          <button class="action-btn action-btn--plain" type="button" data-revoke="${sanitize(v.id)}">Revoke</button>
+        </div>`).join('');
     }
 
-    // ── Button listeners ───────────────────────────────────────────────────
-    document.getElementById('save-profile-btn').addEventListener('click', saveProfile);
-    document.getElementById('save-msgs-btn').addEventListener('click', saveMessages);
+    $('team-section').addEventListener('click', async e => {
+      const d = e.target.dataset;
+      if (d.remove) { removing = d.remove; return loadTeam(); }
+      if (d.removeCancel) { removing = null; return loadTeam(); }
+      if (d.removeConfirm) {
+        e.target.disabled = true;
+        const { error } = await supabase.rpc('remove_member', { p_user: d.removeConfirm });
+        removing = null;
+        say('team-msg', error ? "Couldn't remove that member." : 'Team member removed.', !error);
+        return loadTeam();
+      }
+      if (d.revoke) {
+        e.target.disabled = true;
+        const res = await supabase.from('invites').delete().eq('id', d.revoke).select('id');
+        say('team-msg', saved(res) ? 'Invite revoked.' : "Couldn't revoke the invite.", saved(res));
+        return loadTeam();
+      }
+    });
+    $('invite-btn').addEventListener('click', () => say('team-msg', 'Inviting team members is coming in the next update.'));
 
-    // ── Init ───────────────────────────────────────────────────────────────
+    // ── Billing ──────────────────────────────────────────────────────────────
+    function renderBilling(b) {
+      const days = trialDaysLeft(b);
+      $('plan-name').textContent = planLabel(b);
+      $('plan-status').textContent =
+          b.status === 'trialing'  ? (hasAccess(b) ? `Free trial — ${days} day${days === 1 ? '' : 's'} left` : 'Your free trial has ended')
+        : b.status === 'active'    ? (b.current_period_end ? `Renews ${formatDate(b.current_period_end, true)}` : 'Active')
+        : b.status === 'past_due'  ? 'Payment failed — please update your card'
+        : b.status === 'cancelled' ? (b.current_period_end ? `Cancelled — access until ${formatDate(b.current_period_end, true)}` : 'Cancelled')
+        : 'Expired — choose a plan to continue';
+      for (const p of ['solo', 'crew', 'pro']) {
+        const card = $('buy-' + p);
+        card.href = checkoutUrl(p, b.id, ctx.user.email);
+        card.classList.toggle('billing-plan--current', b.status === 'active' && b.plan === p);
+      }
+      $('billing-plans').hidden = !isOwner();
+      $('billing-owner-note').hidden = !isOwner();
+    }
+
+    // After Dodo checkout: poll until the webhook marks the business active (max 30s)
+    async function confirmPayment() {
+      say('billing-msg', 'Confirming your payment…');
+      for (let i = 0; i < 10; i++) {
+        await new Promise(r => setTimeout(r, 3000));
+        const { data } = await supabase.from('businesses').select('*').eq('id', ctx.business.id).single();
+        if (data?.status === 'active') {
+          ctx.business = data;
+          renderBilling(data);
+          history.replaceState(null, '', location.pathname + '#billing');
+          return say('billing-msg', `You're on ${planLabel(data)}. Thank you!`);
+        }
+      }
+      say('billing-msg', "We haven't had confirmation yet. It can take a minute — refresh shortly, or email hello@getquotechase.com.", false);
+    }
+
     async function init() {
       ctx = await getContext();
       renderSidebar(ctx, 'settings');
-      populate(ctx);
-      renderBilling(ctx);
+      $('full-name').value = ctx.member.full_name || '';
+      $('notify-email').checked = ctx.member.notify_email !== false;
+      $('my-email').textContent = `Signed in as ${ctx.user.email}`;
+      if (isOwner()) {
+        fillBusiness(ctx.business);
+        fillMessages(ctx.business);
+        for (const s of ['business-section', 'messages-section', 'team-section']) $(s).hidden = false;
+        loadTeam();
+      }
+      renderBilling(ctx.business);
+      if (location.hash === '#billing') $('billing').scrollIntoView();
+      if (new URLSearchParams(location.search).get('paid') === '1') confirmPayment();
     }
 
     init().catch(err => {
