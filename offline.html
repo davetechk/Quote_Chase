@@ -17,7 +17,8 @@
     <img src="/icons/icon-192.png" alt="" width="64" height="64" style="border-radius:16px;margin:0 auto 20px;">
     <h1 style="font-size:1.4rem;margin-bottom:8px;">You're offline</h1>
     <p style="color:var(--text-3);margin-bottom:24px;">Reconnect to see your quotes.</p>
-    <button class="btn btn--primary" type="button" onclick="location.reload()">Retry</button>
+    <button class="btn btn--primary" type="button" id="retry-btn">Retry</button>
   </div>
+  <script>document.getElementById('retry-btn').addEventListener('click', () => location.reload());</script>
 </body>
 </html>
