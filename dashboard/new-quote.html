@@ -156,7 +156,7 @@
 
   <script type="module">
     import { supabase }                                          from '/js/supabase.js';
-    import { getContext, renderSidebar, hasAccess, showNoAccessBanner,
+    import { getContext, hasAccess, showNoAccessBanner,
              formatMoney, QUIET_ERRORS }                         from '/js/dashboard.js';
 
     const form               = document.getElementById('quote-form');
@@ -289,8 +289,7 @@
 
     // ── Init ─────────────────────────────────────────────────────────────────
     async function init() {
-      ctx = await getContext();
-      renderSidebar(ctx, 'new-quote');
+      ctx = await getContext({ page: 'new-quote' });
       document.getElementById('currency-symbol').textContent = ctx.business.country === 'US' ? '$' : '£';
       customerPhoneInput.placeholder = ctx.business.country === 'US' ? '(202) 555-0123' : '07700 900000';
       if (!hasAccess(ctx.business)) {

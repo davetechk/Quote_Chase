@@ -85,7 +85,7 @@
 
   <script type="module">
     import { supabase }                                           from '/js/supabase.js';
-    import { requireAuth, getContext, renderSidebar, sanitize,
+    import { getContext, renderSidebar, sanitize,
              formatDate, QUIET_ERRORS }                           from '/js/dashboard.js';
 
     const $ = id => document.getElementById(id);
@@ -187,14 +187,14 @@
     }
 
     async function init() {
-      await requireAuth();
-      const { data: isAdmin } = await supabase.rpc('is_admin');
-      if (isAdmin !== true) {
+      // getContext asks is_admin alongside the account load; nothing is shown until the gate passes
+      const ctx = await getContext();
+      if ((await ctx.isAdmin) !== true) {
         document.body.innerHTML = '<div class="not-found"><div><h1 style="font-size:1.4rem;margin-bottom:8px;">Not found</h1><p>This page doesn’t exist.</p></div></div>';
         throw new Error('not admin');
       }
       try { localStorage.setItem('qc_admin', '1'); } catch (_) {}  // keeps the admin out of visitor stats
-      renderSidebar(await getContext(), 'admin');
+      renderSidebar(ctx, 'admin');
       await load();
       $('refresh-btn').addEventListener('click', load);
     }

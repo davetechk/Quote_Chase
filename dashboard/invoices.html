@@ -147,7 +147,7 @@
 
   <script type="module">
     import { supabase }                                          from '/js/supabase.js';
-    import { getContext, renderSidebar, sanitize, formatDate, QUIET_ERRORS } from '/js/dashboard.js';
+    import { getContext, sanitize, formatDate, QUIET_ERRORS } from '/js/dashboard.js';
 
     let ctx = null;
     let invoices = [];
@@ -201,13 +201,16 @@
 
     const COLS = 'id, quote_id, number, customer_name, customer_email, customer_address, items, tax_rate, subtotal, tax_amount, total, currency, notes, due_date, status, sent_at, paid_at, created_at';
 
-    async function loadInvoices() {
-      const { data, error } = await supabase.from('invoices').select(COLS)
-        .eq('business_id', ctx.business.id).order('created_at', { ascending: false });
+    const fetchInvoices = businessId => supabase.from('invoices').select(COLS)
+      .eq('business_id', businessId).order('created_at', { ascending: false });
+
+    function showInvoices({ data, error }) {
       if (error) return flash('error-msg', "Couldn't load invoices. Please refresh.");
       invoices = data;
       renderList();
     }
+
+    async function loadInvoices() { showInvoices(await fetchInvoices(ctx.business.id)); }
 
     // ── Editor ───────────────────────────────────────────────────────────────
     function rowHtml(item = { description: '', quantity: 1, unit_price: '' }) {
@@ -361,12 +364,11 @@
     }
 
     async function init() {
-      ctx = await getContext();
-      renderSidebar(ctx, 'invoices');
+      ctx = await getContext({ page: 'invoices', load: fetchInvoices });
       if (!ctx.limits.invoicing) { $('not-available').hidden = false; return; }
       $('list-view').hidden = false;
       $('new-invoice-btn').hidden = false;
-      await loadInvoices();
+      showInvoices(ctx.data);
       const fromQuote = new URLSearchParams(location.search).get('from_quote');
       if (fromQuote) startFromQuote(fromQuote);
     }

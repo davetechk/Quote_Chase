@@ -18,6 +18,7 @@ export async function signIn(email, password) {
 export async function signOut() {
   const { error } = await supabase.auth.signOut();
   if (error) throw error;
+  try { sessionStorage.removeItem('qc_ctx'); } catch (_) {} // sidebar cache from js/dashboard.js
   window.location.href = '/auth/login.html';
 }
 

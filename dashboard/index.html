@@ -96,14 +96,15 @@
 
   <script type="module">
     import { supabase }                                          from '/js/supabase.js';
-    import { getContext, renderSidebar, hasAccess, showNoAccessBanner, trialDaysLeft,
+    import { getContext, hasAccess, showNoAccessBanner, trialDaysLeft,
              sanitize, formatMoney, formatDate, statusBadge, eventText, timeAgo,
              QUIET_ERRORS }                                      from '/js/dashboard.js';
 
     let ctx = null;
-    let quotes = [];
-    let events = [];
-    let lastEvent = new Map();   // quote_id → latest non-view event type (replied quotes only)
+    let quotes = [];      // every quote, stats columns only
+    let recent = [];      // latest 10 unarchived, for the table
+    let attention = [];   // replied, or opened in the last 48h — each with its latest non-view event
+    let events = [];      // latest 15, each with its quote's name and amount
     const errorMsg = document.getElementById('error-msg');
     const money = n => formatMoney(n, ctx.business.country);
     const isOpen = q => (q.status === 'sent' || q.status === 'replied') && !q.archived;
@@ -129,10 +130,7 @@
 
     // ── Needs attention: unanswered replies, and open quotes opened in the last 48h
     function renderAttention() {
-      const since = new Date(Date.now() - 48 * 3600e3).toISOString();
-      const items = quotes.filter(q => !q.archived &&
-        ((q.status === 'replied' && lastEvent.get(q.id) !== 'owner_reply') ||
-        (q.status === 'sent' && q.last_viewed_at && q.last_viewed_at >= since)));
+      const items = attention.filter(q => q.status !== 'replied' || q.last[0]?.type !== 'owner_reply');
       document.getElementById('attention-list').innerHTML = items.length ? items.map(q => `
         <a class="list-item" href="/dashboard/quotes.html?id=${encodeURIComponent(q.id)}${q.status === 'replied' ? '&reply=1' : ''}">
           <span class="list-item__main">
@@ -147,17 +145,15 @@
 
     // ── Recent activity (last 15 events) ─────────────────────────────────────
     function renderActivity() {
-      const byId = new Map(quotes.map(q => [q.id, q]));
       document.getElementById('activity-list').innerHTML = events.length ? events.map(ev => `
         <div class="list-item">
-          <span class="list-item__main">${sanitize(eventText(ev, byId.get(ev.quote_id), 80))}</span>
+          <span class="list-item__main">${sanitize(eventText(ev, ev.quote, 80))}</span>
           <span class="list-item__end text-muted text-xs">${sanitize(timeAgo(ev.created_at))}</span>
         </div>`).join('') : '<div class="table-empty">No activity yet.</div>';
     }
 
     // ── Recent quotes with quick actions ─────────────────────────────────────
     function renderQuotes() {
-      const recent = quotes.filter(q => !q.archived).slice(0, 10);
       const tbody = document.getElementById('quotes-tbody');
       if (!recent.length) {
         tbody.innerHTML = `<tr><td colspan="6" class="table-empty">
@@ -186,42 +182,47 @@
 
     function render() { renderStats(); renderAttention(); renderActivity(); renderQuotes(); }
 
-    async function load() {
-      const [q, e] = await Promise.all([
+    // All four lists in one parallel round (getContext runs this alongside plan_limits)
+    function fetchData(businessId) {
+      const since = new Date(Date.now() - 48 * 3600e3).toISOString();
+      return Promise.all([
         supabase.from('quotes')
-          .select('id, customer_name, job_description, amount, currency, status, paused, archived, view_count, last_viewed_at, sent_at, closed_at, created_at')
-          .eq('business_id', ctx.business.id)
-          .order('created_at', { ascending: false }),
+          .select('status, amount, currency, closed_at, created_at, archived')
+          .eq('business_id', businessId),
+        supabase.from('quotes')
+          .select('id, customer_name, job_description, amount, currency, status, paused, sent_at, created_at')
+          .eq('business_id', businessId).eq('archived', false)
+          .order('created_at', { ascending: false })
+          .limit(10),
+        // The latest non-view event tells us if you've already answered a reply;
+        // views are skipped because the customer reading your reply isn't news
+        supabase.from('quotes')
+          .select('id, customer_name, amount, currency, status, view_count, last_viewed_at, last:quote_events(type)')
+          .eq('business_id', businessId).eq('archived', false)
+          .or(`status.eq.replied,and(status.eq.sent,last_viewed_at.gte."${since}")`)
+          .neq('last.type', 'viewed')
+          .order('created_at', { ascending: false })
+          .order('created_at', { referencedTable: 'last', ascending: false })
+          .limit(1, { referencedTable: 'last' }),
         supabase.from('quote_events')
-          .select('id, quote_id, type, detail, created_at')
-          .eq('business_id', ctx.business.id)
+          .select('id, quote_id, type, detail, created_at, quote:quotes(customer_name, amount, currency)')
+          .eq('business_id', businessId)
           .order('created_at', { ascending: false })
           .limit(15),
       ]);
-      if (q.error || e.error) {
+    }
+
+    function show(results) {
+      if (results.some(r => r.error)) {
         errorMsg.textContent = 'Failed to load your quotes. Please refresh.';
         errorMsg.classList.add('visible');
         return;
       }
-      quotes = q.data;
-      events = e.data;
-      await loadLastEvents();
+      [quotes, recent, attention, events] = results.map(r => r.data);
       render();
     }
 
-    // Latest event per replied quote, so ones you've already answered drop out of
-    // Needs attention. Views are skipped: the customer reading your reply isn't news.
-    async function loadLastEvents() {
-      const ids = quotes.filter(q => q.status === 'replied' && !q.archived).map(q => q.id);
-      lastEvent = new Map();
-      if (!ids.length) return;
-      const { data } = await supabase.from('quote_events')
-        .select('quote_id, type')
-        .in('quote_id', ids)
-        .neq('type', 'viewed')
-        .order('created_at', { ascending: false });
-      for (const ev of data || []) if (!lastEvent.has(ev.quote_id)) lastEvent.set(ev.quote_id, ev.type);
-    }
+    async function load() { show(await fetchData(ctx.business.id)); }
 
     // ── Won / Lost / Replied ─────────────────────────────────────────────────
     document.getElementById('quotes-tbody').addEventListener('click', async e => {
@@ -240,15 +241,14 @@
     });
 
     async function init() {
-      ctx = await getContext();
-      renderSidebar(ctx, 'dashboard');
+      ctx = await getContext({ page: 'dashboard', load: fetchData });
       document.getElementById('owner-name').textContent = ctx.member.full_name || ctx.business.name || 'there';
       if (ctx.business.status === 'trialing' && hasAccess(ctx.business)) {
         document.getElementById('trial-days-left').textContent = trialDaysLeft(ctx.business);
         document.getElementById('trial-banner').hidden = false;
       }
       if (!hasAccess(ctx.business)) showNoAccessBanner();
-      await load();
+      show(ctx.data);
     }
 
     init().catch(err => {

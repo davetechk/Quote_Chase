@@ -22,24 +22,47 @@ export async function requireAuth() {
   return session;
 }
 
-// ─── Load who's signed in: { user, member, business, limits } ───────────────
-export async function getContext() {
+// ─── Load who's signed in: { user, member, business, limits, isAdmin, data } ─
+// Two rounds of requests: (1) member + business, with is_admin alongside;
+// (2) plan limits alongside the page's own data — load(businessId) — returned as ctx.data.
+// With page set, the sidebar is drawn from this tab's last context straight away.
+const BUSINESS_COLS = 'id, name, trade, country, reply_to_email, booking_url, followup_templates, plan, status, trial_ends_at, current_period_end';
+const CTX_KEY = 'qc_ctx';
+
+export async function getContext({ load, page } = {}) {
   const { user } = await requireAuth();
-  const { data: member, error } = await supabase
+  // Display only (sidebar, and a head start on the page's queries). Never used for
+  // access decisions: RLS and the functions check everything on the server.
+  let cached = null;
+  try { cached = JSON.parse(sessionStorage.getItem(CTX_KEY)); } catch (_) {}
+  if (cached?.user?.id !== user.id) cached = null;
+  if (cached && page) renderSidebar(cached, page);
+
+  const isAdmin = supabase.rpc('is_admin').then(({ data }) => data === true, () => false);
+  // Query builders are thenables without .catch, so wrap in a real promise
+  const early = cached && load ? Promise.resolve(load(cached.business.id)) : null;
+  early?.catch(() => {});
+  const { data: row, error } = await supabase
     .from('members')
-    .select('user_id, business_id, role, full_name, email, notify_email, notify_push')
+    .select(`user_id, business_id, role, full_name, email, notify_email, notify_push, business:businesses(${BUSINESS_COLS})`)
     .eq('user_id', user.id)
     .maybeSingle();
   if (error) throw error;
-  if (!member) {
+  if (!row?.business) {
     document.body.innerHTML = `<p style="padding:24px">We couldn't load your account. Please contact <a href="mailto:hello@getquotechase.com">hello@getquotechase.com</a></p>`;
     throw new Error('no profile');
   }
-  const { data: business, error: bizError } = await supabase
-    .from('businesses').select('*').eq('id', member.business_id).single();
-  if (bizError) throw bizError;
-  const { data: limits } = await supabase.rpc('plan_limits', { p_plan: business.plan });
-  return { user, member, business, limits: limits?.[0] || { monthly_quotes: null, seats: null, invoicing: false } };
+  const { business, ...member } = row;
+  const [{ data: limits }, data] = await Promise.all([
+    supabase.rpc('plan_limits', { p_plan: business.plan }),
+    early && cached.business.id === business.id ? early : load?.(business.id),
+  ]);
+  const ctx = { user, member, business, limits: limits?.[0] || { monthly_quotes: null, seats: null, invoicing: false }, isAdmin };
+  isAdmin.then(admin => {
+    try { sessionStorage.setItem(CTX_KEY, JSON.stringify({ ...ctx, user: { id: user.id, email: user.email }, isAdmin: admin })); } catch (_) {}
+  });
+  if (page) renderSidebar(ctx, page);
+  return { ...ctx, data };
 }
 
 // Errors init() can end with on purpose (after a redirect or a shown message)
@@ -144,7 +167,7 @@ window.addEventListener('beforeinstallprompt', e => {
 });
 
 // ─── Render sidebar ──────────────────────────────────────────────────────────
-export function renderSidebar({ member, business, limits }, activePage) {
+export function renderSidebar({ member, business, limits, isAdmin }, activePage) {
   const nav = [
     { id: 'dashboard', label: 'Dashboard',  icon: '▦', href: '/dashboard/index.html' },
     { id: 'quotes',    label: 'Quotes',     icon: '≡', href: '/dashboard/quotes.html' },
@@ -194,10 +217,10 @@ export function renderSidebar({ member, business, limits }, activePage) {
 
   document.getElementById('sidebar-container').innerHTML = sidebarHTML;
 
-  // Admin link only for admins (RPC returns false for everyone else)
-  supabase.rpc('is_admin').then(({ data }) => {
-    if (data === true) document.getElementById('sidebar-nav')
-      .insertAdjacentHTML('beforeend', link({ id: 'admin', label: 'Admin', icon: '◆', href: '/admin/index.html' }));
+  // Admin link only for admins (is_admin is false for everyone else; a promise until it answers)
+  const navEl = document.getElementById('sidebar-nav');
+  Promise.resolve(isAdmin).then(admin => {
+    if (admin === true) navEl.insertAdjacentHTML('beforeend', link({ id: 'admin', label: 'Admin', icon: '◆', href: '/admin/index.html' }));
   });
 
   document.getElementById('signout-btn').addEventListener('click', () => signOut());

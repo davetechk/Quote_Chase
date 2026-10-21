@@ -167,7 +167,7 @@
 
   <script type="module">
     import { supabase }                                      from '/js/supabase.js';
-    import { getContext, renderSidebar, planLabel, trialDaysLeft, hasAccess,
+    import { getContext, planLabel, trialDaysLeft, hasAccess,
              formatDate, sanitize, checkoutUrl, QUIET_ERRORS }  from '/js/dashboard.js';
 
     const DEFAULT_MESSAGES = {
@@ -348,8 +348,7 @@
     }
 
     async function init() {
-      ctx = await getContext();
-      renderSidebar(ctx, 'settings');
+      ctx = await getContext({ page: 'settings' });
       $('full-name').value = ctx.member.full_name || '';
       $('notify-email').checked = ctx.member.notify_email !== false;
       $('my-email').textContent = `Signed in as ${ctx.user.email}`;

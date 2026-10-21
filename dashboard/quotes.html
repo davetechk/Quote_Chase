@@ -114,7 +114,7 @@
 
   <script type="module">
     import { supabase }                                          from '/js/supabase.js';
-    import { getContext, renderSidebar, hasAccess, showNoAccessBanner,
+    import { getContext, hasAccess, showNoAccessBanner,
              sanitize, formatMoney, formatDate, statusBadge, eventText, timeAgo,
              QUIET_ERRORS }                                      from '/js/dashboard.js';
 
@@ -178,16 +178,20 @@
         </tr>`).join('') : '<tr><td colspan="7" class="table-empty">No quotes found.</td></tr>';
     }
 
-    async function loadQuotes() {
-      const { data, error } = await supabase
-        .from('quotes')
-        .select('id, created_by, customer_name, customer_email, customer_phone, job_description, amount, currency, status, paused, archived, public_token, followup_step, next_followup_at, view_count, last_viewed_at, sent_at, closed_at, created_at')
-        .eq('business_id', ctx.business.id)
-        .order('created_at', { ascending: false });
+    // Every quote: search and the status filter work on the full list in the browser
+    const fetchQuotes = businessId => supabase
+      .from('quotes')
+      .select('id, customer_name, customer_email, customer_phone, job_description, amount, currency, status, paused, archived, public_token, followup_step, next_followup_at, view_count, last_viewed_at, sent_at, created_at')
+      .eq('business_id', businessId)
+      .order('created_at', { ascending: false });
+
+    function showQuotes({ data, error }) {
       if (error) return flash('error-msg', 'Failed to load quotes. Please refresh.');
       quotes = data;
       renderTable();
     }
+
+    async function loadQuotes() { showQuotes(await fetchQuotes(ctx.business.id)); }
 
     // ── Detail modal ─────────────────────────────────────────────────────────
     async function openModal(id) {
@@ -389,10 +393,9 @@
     $('status-filter').addEventListener('change', renderTable);
 
     async function init() {
-      ctx = await getContext();
-      renderSidebar(ctx, 'quotes');
+      ctx = await getContext({ page: 'quotes', load: fetchQuotes });
       if (!hasAccess(ctx.business)) showNoAccessBanner();
-      await loadQuotes();
+      showQuotes(ctx.data);
       // Notification emails link to ?id=<quote>&reply=1
       const params = new URLSearchParams(location.search);
       const id = params.get('id');
