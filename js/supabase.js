@@ -1,5 +1,6 @@
 // supabase-js 2.118.0 comes from /js/vendor/supabase.js — one local file, loaded by a
 // <script defer> placed before each page's module script, so window.supabase is ready here.
+// vercel.json caches /js/vendor/ as immutable for a year: to upgrade, use a new file name.
 const { createClient } = window.supabase;
 
 export const SUPABASE_URL = 'https://bqqyiawsawnoikyvoxfj.supabase.co';
