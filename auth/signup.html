@@ -73,6 +73,8 @@
         <p class="form-hint">Minimum 8 characters</p>
       </div>
 
+      <div class="captcha" id="captcha"></div>
+
       <button class="btn btn--primary w-full mt-8" id="signup-btn" type="button">
         <span id="btn-text">Create free account</span>
         <span class="spinner" id="spinner"></span>
@@ -91,10 +93,12 @@
     </div>
   </div>
 
+  <script async defer src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit"></script>
   <script defer src="/js/vendor/supabase.js"></script>
   <script type="module">
     import { signUp, getSession, friendlyAuthError } from '/js/auth.js';
     import { trackVisit } from '/js/tracker.js';
+    import { captcha, CAPTCHA_ERROR } from '/js/turnstile.js';
 
     trackVisit();
 
@@ -112,6 +116,7 @@
     const spinner           = document.getElementById('spinner');
     const errorMsg          = document.getElementById('error-msg');
     const successMsg        = document.getElementById('success-msg');
+    const check             = captcha(document.getElementById('captcha'), signupBtn);
 
     // Invite mode: /auth/signup.html?invite=<token> joins an existing team
     const inviteToken = new URLSearchParams(location.search).get('invite');
@@ -123,7 +128,7 @@
     }
 
     function setLoading(on) {
-      signupBtn.disabled = on;
+      signupBtn.disabled = on || !check.token();
       btnText.textContent = on ? 'Creating account…' : inviteToken ? 'Join team' : 'Create free account';
       spinner.classList.toggle('visible', on);
     }
@@ -161,6 +166,7 @@
         showError('Password must be at least 8 characters.');
         return;
       }
+      if (!check.token()) { showError(CAPTCHA_ERROR); return; }
 
       setLoading(true);
       try {
@@ -168,11 +174,12 @@
         const metadata = inviteToken
           ? { full_name: ownerName, invite_token: inviteToken }
           : { business_name: businessName, full_name: ownerName };
-        const authData = await signUp(email, password, metadata);
+        const authData = await signUp(email, password, metadata, check.token());
 
         if (!authData?.session) {
           // Email confirmation is on — no session until they confirm
           showSuccess('Account created! Check your inbox to confirm your email, then sign in.');
+          check.reset();
           setLoading(false);
           return;
         }
@@ -184,6 +191,7 @@
         showError(inviteToken && /database error/i.test(err.message || '')
           ? 'This invite link is invalid or has expired. Ask your team owner for a new one.'
           : friendlyAuthError(err));
+        check.reset();
         setLoading(false);
       }
     }

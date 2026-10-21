@@ -1,15 +1,15 @@
 import { supabase } from './supabase.js';
 
 // ─── Sign Up ────────────────────────────────────────────────────────────────
-export async function signUp(email, password, metadata) {
-  const { data, error } = await supabase.auth.signUp({ email, password, options: { data: metadata } });
+export async function signUp(email, password, metadata, captchaToken) {
+  const { data, error } = await supabase.auth.signUp({ email, password, options: { data: metadata, captchaToken } });
   if (error) throw error;
   return data;
 }
 
 // ─── Sign In ────────────────────────────────────────────────────────────────
-export async function signIn(email, password) {
-  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+export async function signIn(email, password, captchaToken) {
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password, options: { captchaToken } });
   if (error) throw error;
   return data;
 }
@@ -30,9 +30,10 @@ export async function getSession() {
 }
 
 // ─── Send password reset email ──────────────────────────────────────────────
-export async function resetPassword(email) {
+export async function resetPassword(email, captchaToken) {
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
     redirectTo: `${window.location.origin}/auth/reset-password.html`,
+    captchaToken,
   });
   if (error) throw error;
 }
@@ -46,6 +47,7 @@ export async function updatePassword(newPassword) {
 // ─── Plain-English auth errors (never show raw server text) ─────────────────
 export function friendlyAuthError(err) {
   const m = (err?.message || '').toLowerCase();
+  if (m.includes('captcha')) return 'Please complete the security check and try again.';
   if (m.includes('already registered') || m.includes('already been registered')) return 'An account with this email already exists. Try signing in.';
   if (m.includes('invalid login')) return 'Incorrect email or password. Please try again.';
   if (m.includes('email not confirmed')) return 'Please confirm your email address first. Check your inbox.';

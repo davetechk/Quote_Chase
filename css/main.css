@@ -504,6 +504,10 @@ p  { color: var(--text-2); }
 .form-input::placeholder { color: var(--text-3); }
 .form-input.error { border-color: var(--red); }
 .form-hint { font-size: 0.8rem; color: var(--text-3); margin-top: 6px; }
+/* Cloudflare Turnstile widget (js/turnstile.js). The reserved height stops the button jumping;
+   flex centring makes its 300px minimum overflow evenly on narrow phones */
+.captcha { min-height: 65px; margin-top: 4px; display: flex; justify-content: center; }
+.captcha > * { flex-grow: 1; }
 .form-error { font-size: 0.85rem; color: var(--red); margin-top: 8px; display: none; }
 .form-error.visible { display: block; }
 
