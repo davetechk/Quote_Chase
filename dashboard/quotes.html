@@ -40,6 +40,14 @@
       padding: 12px 14px; border-radius: var(--radius); background: var(--red-dim); border: 1px solid rgba(220,38,38,0.3);
       color: #fca5a5; font-size: 0.85rem;
     }
+    .reply-asked {
+      font-size: 0.85rem; color: var(--text-2); line-height: 1.5; overflow-wrap: anywhere; white-space: pre-line;
+      padding: 10px 12px; margin-bottom: 10px; border-radius: var(--radius); background: var(--bg-3); border-left: 3px solid var(--orange);
+    }
+    .reply-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 8px; }
+    .reply-foot .form-hint { margin-top: 0; }
+    .reply-foot .form-hint.over { color: var(--red); }
+    #reply-msg { margin: 10px 0 0; }
   </style>
 </head>
 <body>
@@ -114,6 +122,10 @@
     let quotes = [];
     let openId = null;      // quote shown in the modal
     let confirmingDelete = false;
+    let openEvents = null;  // its timeline, null while loading
+    // Reply box state survives re-renders; the draft is kept per quote until sent
+    const REPLY_MAX = 2000;
+    let draft = '', draftFor = null, replyNote = null, sendingReply = false;
 
     const $ = id => document.getElementById(id);
     const isOpen = q => q.status === 'sent' || q.status === 'replied';
@@ -182,18 +194,42 @@
       const q = quotes.find(x => x.id === id);
       if (!q) return;
       openId = id;
+      if (draftFor !== id) { draft = ''; draftFor = id; replyNote = null; }
       $('modal-title').textContent = q.customer_name;
-      renderModal(q, null);
+      if (!$('detail-modal').classList.contains('visible')) openEvents = null;
+      renderModal(q, openEvents);
       $('detail-modal').classList.add('visible');
       const { data: events } = await supabase
         .from('quote_events')
         .select('id, type, detail, created_at')
         .eq('quote_id', id)
         .order('created_at', { ascending: true });
-      if (openId === id) renderModal(q, events || []);
+      if (openId === id) renderModal(q, openEvents = events || []);
+    }
+
+    function replyBox(q, events) {
+      // Show the customer's question when it's the latest thing that happened (views don't count)
+      const last = events?.filter(ev => ev.type !== 'viewed').at(-1);
+      const asked = last?.type === 'question' ? `${q.customer_name} asked: “${last.detail?.message || ''}”` : '';
+      const len = draft.length;
+      return `
+          <div>
+            <label class="detail-label" for="reply-text" style="display:block">Reply to customer</label>
+            ${asked ? `<p class="reply-asked">${sanitize(asked)}</p>` : ''}
+            <textarea class="form-input" id="reply-text" rows="3" maxlength="${REPLY_MAX}"
+              placeholder="We'll email this to ${sanitize(q.customer_email)}">${sanitize(draft)}</textarea>
+            <div class="reply-foot">
+              <span class="form-hint${len > REPLY_MAX ? ' over' : ''}" id="reply-count">${len}/${REPLY_MAX}</span>
+              <button class="btn btn--primary btn--sm" id="reply-send" type="button"
+                ${sendingReply || !draft.trim() || len > REPLY_MAX ? 'disabled' : ''}>${sendingReply ? 'Sending…' : 'Send reply'}</button>
+            </div>
+            <div class="alert ${replyNote?.ok ? 'alert--success' : 'alert--error'}${replyNote ? ' visible' : ''}" id="reply-msg" role="status">${sanitize(replyNote?.text || '')}</div>
+          </div>`;
     }
 
     function renderModal(q, events) {
+      // Re-rendering replaces the textarea; keep the cursor in it if it had focus
+      const typing = document.activeElement?.id === 'reply-text';
       const btn = (action, label, cls = 'plain') =>
         `<button class="action-btn action-btn--${cls}" type="button" data-id="${sanitize(q.id)}" data-action="${action}">${label}</button>`;
       const when = iso => `${formatDate(iso, true)} · ${new Date(iso).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}`;
@@ -229,6 +265,7 @@
             <div class="detail-label">Timeline</div>
             ${timeline}
           </div>
+          ${q.archived ? '' : replyBox(q, events)}
           ${confirmingDelete ? `
           <div class="confirm-bar">
             <span>Delete this quote and its history for good?</span>
@@ -244,6 +281,44 @@
             ${ctx.member.role === 'owner' && !confirmingDelete ? btn('delete', 'Delete', 'lost') : ''}
           </div>
         </div>`;
+      if (typing && $('reply-text')) {
+        $('reply-text').focus();
+        $('reply-text').setSelectionRange(draft.length, draft.length);
+      }
+    }
+
+    // Keep the counter and Send button in step with the textarea without re-rendering
+    function onReplyInput() {
+      draft = $('reply-text').value;
+      replyNote = null;
+      $('reply-msg').classList.remove('visible');
+      $('reply-count').textContent = `${draft.length}/${REPLY_MAX}`;
+      $('reply-count').classList.toggle('over', draft.length > REPLY_MAX);
+      $('reply-send').disabled = sendingReply || !draft.trim() || draft.length > REPLY_MAX;
+    }
+
+    // The function answers non-2xx with { error: "<friendly message>" }
+    async function serverMessage(error) {
+      try { return (await error.context.json()).error; } catch (_) { return null; }
+    }
+
+    async function sendReply(id) {
+      const message = draft.trim();
+      if (sendingReply || !message || message.length > REPLY_MAX) return;
+      sendingReply = true;
+      $('reply-send').disabled = true;
+      $('reply-send').textContent = 'Sending…';
+      const { error } = await supabase.functions.invoke('send-reply', { body: { quote_id: id, message } });
+      sendingReply = false;
+      if (error) {
+        replyNote = { ok: false, text: (await serverMessage(error)) || "Couldn't send your reply. Please try again." };
+        if (openId === id) renderModal(quotes.find(x => x.id === id), openEvents);
+        return;
+      }
+      draft = '';
+      replyNote = { ok: true, text: 'Reply sent.' };
+      await loadQuotes();
+      if (openId === id) openModal(id);
     }
 
     function closeModal() {
@@ -302,9 +377,11 @@
       if (row) openModal(row.dataset.id);
     });
     $('modal-body').addEventListener('click', e => {
+      if (e.target.closest('#reply-send')) return sendReply(openId);
       const btn = e.target.closest('[data-action]');
       if (btn) act(btn.dataset.id, btn.dataset.action, btn);
     });
+    $('modal-body').addEventListener('input', e => { if (e.target.id === 'reply-text') onReplyInput(); });
     $('modal-close').addEventListener('click', closeModal);
     $('detail-modal').addEventListener('click', e => { if (e.target === $('detail-modal')) closeModal(); });
     document.addEventListener('keydown', e => { if (e.key === 'Escape' && openId) closeModal(); });
@@ -316,8 +393,16 @@
       renderSidebar(ctx, 'quotes');
       if (!hasAccess(ctx.business)) showNoAccessBanner();
       await loadQuotes();
-      const id = new URLSearchParams(location.search).get('id');
-      if (id) openModal(id);
+      // Notification emails link to ?id=<quote>&reply=1
+      const params = new URLSearchParams(location.search);
+      const id = params.get('id');
+      if (id) {
+        await openModal(id);
+        if (params.get('reply') === '1' && $('reply-text')) {
+          $('reply-text').focus();
+          $('reply-text').scrollIntoView({ block: 'center' });
+        }
+      }
     }
 
     init().catch(err => {

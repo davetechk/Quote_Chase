@@ -105,8 +105,10 @@ export function statusBadge(q) {
 }
 
 const FOLLOWUP_DAYS = [2, 5, 10, 20];
-// Plain-text sentence for a quote_events row (caller escapes/uses textContent)
-export function eventText(ev, quote) {
+const clip = (s, max) => max && s.length > max ? s.slice(0, max - 1).trimEnd() + '…' : s;
+// Plain-text sentence for a quote_events row (caller escapes/uses textContent).
+// max trims quoted messages, e.g. 80 for Recent activity.
+export function eventText(ev, quote, max) {
   const who = quote?.customer_name || 'The customer';
   const amount = quote ? formatMoney(quote.amount, quote.currency) : '';
   const d = ev.detail || {};
@@ -117,7 +119,8 @@ export function eventText(ev, quote) {
     case 'replied':       return `${who} replied`;
     case 'accepted':      return `${who} accepted ${amount}`;
     case 'declined':      return `${who} declined the quote`;
-    case 'question':      return `${who} asked: “${d.message || ''}”`;
+    case 'question':      return `${who} asked: “${clip(d.message || '', max)}”`;
+    case 'owner_reply':   return `${d.by || 'You'} replied: “${clip(d.message || '', max)}”`;
     case 'status_changed':return `Quote for ${who} marked ${d.to || 'updated'}`;
     case 'send_failed':   return `Couldn't send to ${who}${d.channel ? ` by ${d.channel}` : ''}${d.error ? ` — ${d.error}` : ''}`;
     default:              return ev.type;

@@ -103,6 +103,7 @@
     let ctx = null;
     let quotes = [];
     let events = [];
+    let lastEvent = new Map();   // quote_id → latest non-view event type (replied quotes only)
     const errorMsg = document.getElementById('error-msg');
     const money = n => formatMoney(n, ctx.business.country);
     const isOpen = q => (q.status === 'sent' || q.status === 'replied') && !q.archived;
@@ -126,13 +127,14 @@
       document.getElementById('stat-month-sub').textContent = limit == null ? 'unlimited on your plan' : `${Math.max(0, limit - sentMonth)} left`;
     }
 
-    // ── Needs attention: replies, and open quotes opened in the last 48h ─────
+    // ── Needs attention: unanswered replies, and open quotes opened in the last 48h
     function renderAttention() {
       const since = new Date(Date.now() - 48 * 3600e3).toISOString();
-      const items = quotes.filter(q => !q.archived && (q.status === 'replied' ||
+      const items = quotes.filter(q => !q.archived &&
+        ((q.status === 'replied' && lastEvent.get(q.id) !== 'owner_reply') ||
         (q.status === 'sent' && q.last_viewed_at && q.last_viewed_at >= since)));
       document.getElementById('attention-list').innerHTML = items.length ? items.map(q => `
-        <a class="list-item" href="/dashboard/quotes.html?id=${encodeURIComponent(q.id)}">
+        <a class="list-item" href="/dashboard/quotes.html?id=${encodeURIComponent(q.id)}${q.status === 'replied' ? '&reply=1' : ''}">
           <span class="list-item__main">
             <strong>${sanitize(q.customer_name)}</strong>
             <span class="list-item__sub">${q.status === 'replied'
@@ -148,7 +150,7 @@
       const byId = new Map(quotes.map(q => [q.id, q]));
       document.getElementById('activity-list').innerHTML = events.length ? events.map(ev => `
         <div class="list-item">
-          <span class="list-item__main">${sanitize(eventText(ev, byId.get(ev.quote_id)))}</span>
+          <span class="list-item__main">${sanitize(eventText(ev, byId.get(ev.quote_id), 80))}</span>
           <span class="list-item__end text-muted text-xs">${sanitize(timeAgo(ev.created_at))}</span>
         </div>`).join('') : '<div class="table-empty">No activity yet.</div>';
     }
@@ -203,7 +205,22 @@
       }
       quotes = q.data;
       events = e.data;
+      await loadLastEvents();
       render();
+    }
+
+    // Latest event per replied quote, so ones you've already answered drop out of
+    // Needs attention. Views are skipped: the customer reading your reply isn't news.
+    async function loadLastEvents() {
+      const ids = quotes.filter(q => q.status === 'replied' && !q.archived).map(q => q.id);
+      lastEvent = new Map();
+      if (!ids.length) return;
+      const { data } = await supabase.from('quote_events')
+        .select('quote_id, type')
+        .in('quote_id', ids)
+        .neq('type', 'viewed')
+        .order('created_at', { ascending: false });
+      for (const ev of data || []) if (!lastEvent.has(ev.quote_id)) lastEvent.set(ev.quote_id, ev.type);
     }
 
     // ── Won / Lost / Replied ─────────────────────────────────────────────────
