@@ -1,9 +1,9 @@
 // QuoteChase service worker — network-first, so new deploys show up straight away.
 // Bump CACHE when the precache list changes.
-const CACHE = 'qc-v2';
+const CACHE = 'qc-v3';
 const PRECACHE = [
   '/css/main.css', '/css/dashboard.css',
-  '/js/auth.js', '/js/dashboard.js', '/js/supabase.js', '/js/tracker.js',
+  '/js/auth.js', '/js/dashboard.js', '/js/supabase.js', '/js/tracker.js', '/js/vendor/supabase.js',
   '/icons/icon-192.png', '/icons/icon-512.png', '/icons/icon-maskable-512.png',
   '/icons/apple-touch-icon.png', '/icons/favicon-32.png',
   '/offline.html',
