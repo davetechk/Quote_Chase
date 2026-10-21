@@ -5,3 +5,4 @@ brag-output/
 .env.*
 .DS_Store
 Thumbs.db
+.vscode/
