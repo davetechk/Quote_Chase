@@ -1,5 +1,6 @@
 /* ─── Google Fonts ─────────────────────────────────────────────────────────── */
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap');
+/* DM Sans 400/600/700/800 is linked in each page's <head> (with preconnect) so it
+   loads alongside this file instead of after it. */
 
 /* ─── CSS Variables ─────────────────────────────────────────────────────────── */
 :root {
