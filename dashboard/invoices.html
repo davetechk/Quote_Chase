@@ -30,6 +30,10 @@
     .badge--draft { background: var(--bg-3); color: var(--text-2); border: 1px solid var(--border); }
     .badge--void { background: var(--bg-3); color: var(--text-3); border: 1px solid var(--border); text-decoration: line-through; }
     .action-btn--plain { background: var(--bg-3); color: var(--text-2); border-color: var(--border); }
+    .confirm-text { flex-basis: 100%; font-size: 0.85rem; color: var(--text-2); overflow-wrap: anywhere; }
+    .status-cell { display: inline-flex; flex-direction: column; align-items: flex-start; gap: 4px; }
+    .cell-sub { font-size: 0.75rem; color: var(--text-3); }
+    @media (max-width: 640px) { .status-cell { align-items: flex-end; } }
     @media (max-width: 640px) {
       .items thead { display: none; }
       .items tr { display: grid; grid-template-columns: 1fr 1fr 40px; gap: 6px; margin-bottom: 12px; }
@@ -70,7 +74,7 @@
       <main class="dashboard-body">
 
         <div class="page-title">Invoices</div>
-        <p class="page-sub">Bill won jobs. Print or save as PDF from your browser.</p>
+        <p class="page-sub">Bill won jobs. Email them to your customer, or print and save as PDF.</p>
 
         <div class="alert alert--error"   id="error-msg" role="alert"></div>
         <div class="alert alert--success" id="success-msg" role="status"></div>
@@ -157,6 +161,7 @@
     let invoices = [];
     let editing = null;     // { id?, quote_id? } while the editor is open
     let confirmDelete = null;
+    let confirmSend = null; // invoice id awaiting the in-page send confirm
 
     const $ = id => document.getElementById(id);
     // Invoices need pence/cents, unlike the rounded dashboard figures
@@ -176,6 +181,8 @@
     // ── List ─────────────────────────────────────────────────────────────────
     const STATUS = { draft: 'Draft', sent: 'Sent', paid: 'Paid', void: 'Void' };
     const BADGE  = { draft: 'draft', sent: 'followup', paid: 'won', void: 'void' };
+    const SEND_LABEL = { draft: 'Send to customer', sent: 'Resend', paid: 'Send receipt' };
+    const customerLink = inv => `${location.origin}/invoice/?t=${encodeURIComponent(inv.public_token)}`;
 
     function renderList() {
       $('invoice-count').textContent = `${invoices.length} invoice${invoices.length === 1 ? '' : 's'}`;
@@ -185,25 +192,30 @@
         const open = inv.status === 'draft' || inv.status === 'sent';
         const actions = confirmDelete === inv.id
           ? `${b('delete-confirm', 'Delete draft', 'lost')}${b('delete-cancel', 'Cancel')}`
+          : confirmSend === inv.id
+          ? `<span class="confirm-text">Send ${sanitize(invNo(inv.number))} (${sanitize(money(inv.total, inv.currency))}) to ${sanitize(inv.customer_email)}?</span>
+             ${b('send-confirm', 'Send', 'won')}${b('send-cancel', 'Cancel')}`
           : [b('print', 'Print / PDF'),
              inv.status === 'draft' && b('edit', 'Edit'),
+             SEND_LABEL[inv.status] && b('send', SEND_LABEL[inv.status]),
+             inv.status !== 'draft' && inv.public_token && b('copy', 'Copy customer link'),
              open && b('paid', 'Mark paid', 'won'),
              open && b('void', 'Void'),
-             inv.status === 'draft' && b('send', 'Send to customer'),
              inv.status === 'draft' && b('delete', 'Delete', 'lost')].filter(Boolean).join('');
         return `
           <tr>
             <td data-label="Number" class="cell-amount">${sanitize(invNo(inv.number))}</td>
             <td data-label="Customer">${sanitize(inv.customer_name)}</td>
             <td data-label="Total" class="cell-amount">${sanitize(money(inv.total, inv.currency))}</td>
-            <td data-label="Status"><span class="badge badge--${BADGE[inv.status]}">${STATUS[inv.status] || sanitize(inv.status)}</span></td>
+            <td data-label="Status"><span class="status-cell"><span class="badge badge--${BADGE[inv.status]}">${STATUS[inv.status] || sanitize(inv.status)}</span>
+              ${inv.sent_at ? `<span class="cell-sub">Sent ${sanitize(formatDate(inv.sent_at))}</span>` : ''}</span></td>
             <td data-label="Due" class="cell-muted">${sanitize(formatDate(inv.due_date, true))}</td>
             <td data-label="Actions"><div class="action-row">${actions}</div></td>
           </tr>`;
       }).join('') : '<tr><td colspan="6" class="table-empty">No invoices yet. Create one from a won quote, or start a new one.</td></tr>';
     }
 
-    const COLS = 'id, quote_id, number, customer_name, customer_email, customer_address, items, tax_rate, subtotal, tax_amount, total, currency, notes, due_date, status, sent_at, paid_at, created_at';
+    const COLS = 'id, quote_id, number, customer_name, customer_email, customer_address, items, tax_rate, subtotal, tax_amount, total, currency, notes, due_date, status, sent_at, paid_at, created_at, public_token';
 
     const fetchInvoices = businessId => supabase.from('invoices').select(COLS)
       .eq('business_id', businessId).order('created_at', { ascending: false });
@@ -337,6 +349,35 @@
       window.print();
     }
 
+    // ── Send / copy link ─────────────────────────────────────────────────────
+    async function serverMessage(error) {
+      try { return (await error.context.json()).error; } catch (_) { return null; }
+    }
+
+    // Drafts become 'sent'; paid invoices go out as a receipt
+    async function sendInvoice(inv, btn) {
+      btn.disabled = true;
+      btn.textContent = 'Sending…';
+      const { error } = await supabase.functions.invoke('send-invoice', { body: { invoice_id: inv.id } });
+      confirmSend = null;
+      if (error) {
+        renderList();
+        return flash('error-msg', (await serverMessage(error)) || "Couldn't send the invoice. Please try again.");
+      }
+      await loadInvoices();
+      flash('success-msg', `${inv.status === 'paid' ? 'Receipt' : 'Invoice'} sent to ${inv.customer_email}`);
+    }
+
+    async function copyLink(inv) {
+      const link = customerLink(inv);
+      try {
+        await navigator.clipboard.writeText(link);
+        flash('success-msg', 'Customer link copied.');
+      } catch (_) {
+        flash('success-msg', `Customer link: ${link}`);
+      }
+    }
+
     // ── Row actions ──────────────────────────────────────────────────────────
     $('invoices-tbody').addEventListener('click', async e => {
       const btn = e.target.closest('[data-action]');
@@ -345,8 +386,16 @@
       const action = btn.dataset.action;
       if (action === 'print') return printInvoice(inv);
       if (action === 'edit') return openEditor(inv);
-      if (action === 'send') return flash('success-msg', 'Sending invoices to customers is coming in the next update. For now, print or save as PDF.');
-      if (action === 'delete' || action === 'delete-cancel') { confirmDelete = action === 'delete' ? inv.id : null; return renderList(); }
+      if (action === 'copy') return copyLink(inv);
+      if (action === 'send') {
+        if (!inv.customer_email) return flash('error-msg', inv.status === 'draft'
+          ? 'Add the customer’s email to this invoice first (Edit).' : 'This invoice has no customer email.');
+        confirmSend = inv.id; confirmDelete = null;
+        return renderList();
+      }
+      if (action === 'send-cancel') { confirmSend = null; return renderList(); }
+      if (action === 'send-confirm') return sendInvoice(inv, btn);
+      if (action === 'delete' || action === 'delete-cancel') { confirmDelete = action === 'delete' ? inv.id : null; confirmSend = null; return renderList(); }
 
       btn.disabled = true;
       const res = action === 'delete-confirm'

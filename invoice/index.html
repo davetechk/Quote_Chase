@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="robots" content="noindex,nofollow">
+  <meta name="referrer" content="no-referrer">
+  <title>Your invoice</title>
+  <link rel="icon" href="/icons/favicon-32.png" type="image/png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #F5F3EF; --card: #FFFFFF; --text: #1F2328; --muted: #5F6670; --line: #E6E2DA;
+      --accent: #E86E00; --accent-dark: #C85F00; --green: #15803D; --red: #B91C1C;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'DM Sans', system-ui, sans-serif; background: var(--bg); color: var(--text);
+      line-height: 1.6; min-height: 100vh; padding: 24px 16px calc(32px + env(safe-area-inset-bottom));
+      -webkit-font-smoothing: antialiased;
+    }
+    [hidden] { display: none !important; }
+    .wrap { max-width: 680px; margin: 0 auto; }
+    .card { background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 28px 24px; box-shadow: 0 6px 24px rgba(31,35,40,0.06); }
+    .business { font-size: 1.35rem; font-weight: 800; letter-spacing: -0.01em; overflow-wrap: anywhere; }
+    .muted { color: var(--muted); font-size: 0.92rem; }
+    .label { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin-bottom: 4px; }
+    .head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; }
+    .title { font-size: 1.05rem; font-weight: 700; margin-top: 2px; }
+    .chip { display: inline-block; padding: 4px 12px; border-radius: 999px; font-size: 0.8rem; font-weight: 700; white-space: nowrap; border: 1px solid; }
+    .chip--due     { background: #FFF4E8; color: var(--accent-dark); border-color: #FBD5AE; }
+    .chip--paid    { background: #ECFDF3; color: var(--green); border-color: #BBF7D0; }
+    .chip--overdue { background: #FEF2F2; color: var(--red); border-color: #FECACA; }
+    .chip--void    { background: #F3F1EC; color: var(--muted); border-color: var(--line); text-decoration: line-through; }
+    .meta { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 24px; }
+    .meta .full { grid-column: 1 / -1; }
+    .pre { white-space: pre-line; overflow-wrap: anywhere; }
+    table { width: 100%; border-collapse: collapse; margin-top: 24px; font-size: 0.92rem; }
+    th { text-align: left; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); padding: 0 8px 8px 0; border-bottom: 1px solid var(--line); }
+    td { padding: 10px 8px 10px 0; border-bottom: 1px solid var(--line); vertical-align: top; overflow-wrap: anywhere; }
+    th:last-child, td:last-child { padding-right: 0; }
+    .num { text-align: right; white-space: nowrap; }
+    .totals { margin: 16px 0 0 auto; max-width: 280px; }
+    .totals div { display: flex; justify-content: space-between; gap: 16px; padding: 4px 0; color: var(--muted); }
+    .totals .grand { color: var(--text); font-size: 1.2rem; font-weight: 800; border-top: 1px solid var(--text); margin-top: 6px; padding-top: 10px; }
+    .totals .grand span:last-child { color: var(--accent); }
+    .notes { margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--line); }
+    .notice { margin-top: 22px; padding: 14px 16px; border-radius: 12px; font-weight: 600; }
+    .notice--good { background: #ECFDF3; color: var(--green); border: 1px solid #BBF7D0; }
+    .notice--neutral { background: #F3F1EC; color: var(--muted); border: 1px solid var(--line); }
+    .contact { margin-top: 20px; }
+    .contact a { color: var(--accent-dark); font-weight: 600; overflow-wrap: anywhere; }
+    .actions { display: flex; flex-direction: column; gap: 10px; margin-top: 26px; }
+    .btn {
+      display: block; width: 100%; padding: 15px 18px; border-radius: 12px; border: 1.5px solid transparent;
+      font: inherit; font-weight: 700; font-size: 1rem; text-align: center; cursor: pointer; text-decoration: none;
+    }
+    .btn--primary { background: var(--accent); color: #fff; }
+    .btn--primary:hover { background: var(--accent-dark); }
+    .btn--outline { background: #fff; color: var(--text); border-color: var(--line); }
+    .btn--outline:hover { border-color: #CFC9BE; }
+    .state { text-align: center; padding: 40px 24px; }
+    .state h1 { font-size: 1.3rem; margin-bottom: 8px; }
+    .footer { text-align: center; font-size: 0.8rem; color: var(--muted); margin-top: 20px; }
+    .footer a { color: inherit; }
+
+    /* Phones: line items stack as cards, the quantity × price under the description */
+    @media (max-width: 520px) {
+      .card { padding: 24px 18px; }
+      .meta { grid-template-columns: 1fr; gap: 16px; }
+      thead { display: none; }
+      tr { display: grid; grid-template-columns: 1fr auto; column-gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+      td { border: 0; padding: 0; }
+      td.desc { grid-column: 1; grid-row: 1; }
+      td.line-total { grid-column: 2; grid-row: 1; font-weight: 700; }
+      td.qty, td.unit { display: none; }
+      td.calc { grid-column: 1; grid-row: 2; color: var(--muted); font-size: 0.85rem; }
+    }
+    @media (min-width: 521px) { td.calc { display: none; } }
+
+    @media print {
+      @page { margin: 16mm; }
+      body { background: #fff; padding: 0; }
+      .card { border: 0; box-shadow: none; padding: 0; }
+      .actions, .footer { display: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+
+    <div class="card state" id="loading"><p class="muted">Loading your invoice…</p></div>
+
+    <div class="card state" id="not-found" hidden>
+      <h1>We couldn't find this invoice</h1>
+      <p class="muted">The link may be incomplete, or the invoice is no longer available. Please contact the business that sent it.</p>
+    </div>
+
+    <div class="card state" id="failed" hidden>
+      <h1>We couldn't load your invoice</h1>
+      <p class="muted" id="failed-text">Please check your connection and try again.</p>
+      <div class="actions"><button class="btn btn--outline" id="retry-btn" type="button">Try again</button></div>
+    </div>
+
+    <div class="card" id="invoice" hidden>
+      <div class="head">
+        <div>
+          <div class="business" id="i-business"></div>
+          <div class="title" id="i-number"></div>
+        </div>
+        <span class="chip" id="i-status"></span>
+      </div>
+
+      <div class="meta">
+        <div class="full">
+          <div class="label">Bill to</div>
+          <div class="pre" id="i-customer"></div>
+        </div>
+        <div>
+          <div class="label">Issued</div>
+          <div id="i-issued"></div>
+        </div>
+        <div id="i-due-wrap">
+          <div class="label">Due</div>
+          <div id="i-due"></div>
+        </div>
+      </div>
+
+      <table>
+        <thead><tr><th>Description</th><th class="num">Qty</th><th class="num">Unit price</th><th class="num">Amount</th></tr></thead>
+        <tbody id="i-items"></tbody>
+      </table>
+
+      <div class="totals">
+        <div><span>Subtotal</span><span id="i-subtotal"></span></div>
+        <div><span id="i-tax-label">Tax</span><span id="i-tax"></span></div>
+        <div class="grand"><span>Total</span><span id="i-total"></span></div>
+      </div>
+
+      <div class="notice notice--good" id="i-paid" hidden></div>
+      <div class="notice notice--neutral" id="i-void" hidden>This invoice has been cancelled. Nothing is owed on it.</div>
+
+      <div class="notes" id="i-notes-wrap" hidden>
+        <div class="label">Notes</div>
+        <p class="pre" id="i-notes"></p>
+      </div>
+
+      <p class="contact muted" id="i-contact" hidden>Questions? Email <a id="i-email"></a></p>
+
+      <div class="actions"><button class="btn btn--primary" id="print-btn" type="button">Print / Save as PDF</button></div>
+    </div>
+
+    <p class="footer">Sent with <a href="https://www.getquotechase.com" rel="noopener">QuoteChase</a></p>
+  </div>
+
+  <script>
+    // Public page: plain fetch only — no supabase-js, no analytics, no tracker.
+    const ENDPOINT = 'https://bqqyiawsawnoikyvoxfj.supabase.co/functions/v1/invoice-public';
+    const token = new URLSearchParams(location.search).get('t');
+    const $ = id => document.getElementById(id);
+
+    function show(id) {
+      for (const s of ['loading', 'not-found', 'failed', 'invoice']) $(s).hidden = s !== id;
+    }
+
+    const locale = currency => currency === 'USD' ? 'en-US' : 'en-GB';
+    const money = (n, currency) => new Intl.NumberFormat(locale(currency),
+      { style: 'currency', currency: currency === 'USD' ? 'USD' : 'GBP' }).format(Number(n) || 0);
+    // due_date is a plain YYYY-MM-DD: read it as a local date so it can't shift a day
+    const toDate = s => /^\d{4}-\d{2}-\d{2}$/.test(s) ? new Date(s.slice(0, 4), s.slice(5, 7) - 1, s.slice(8, 10)) : new Date(s);
+    const day = (s, currency) => s ? toDate(s).toLocaleDateString(locale(currency), { day: 'numeric', month: 'long', year: 'numeric' }) : '';
+    // The database numbers invoices 1, 2, 3… — show them as INV-0001 (same as the dashboard)
+    const invNo = n => /^\d+$/.test(String(n)) ? 'INV-' + String(n).padStart(4, '0') : String(n ?? '');
+    const today = () => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; };
+
+    function chip(inv) {
+      if (inv.status === 'void') return ['void', 'Void'];
+      if (inv.status === 'paid') return ['paid', 'Paid'];
+      if (inv.due_date && toDate(inv.due_date) < today()) return ['overdue', 'Overdue'];
+      return ['due', 'Due'];
+    }
+
+    function render(inv) {
+      const c = inv.currency;
+      document.title = `Invoice ${invNo(inv.number)} from ${inv.business_name}`;
+      $('i-business').textContent = inv.business_name;
+      $('i-number').textContent = `Invoice ${invNo(inv.number)}`;
+      const [cls, label] = chip(inv);
+      $('i-status').className = `chip chip--${cls}`;
+      $('i-status').textContent = label;
+      $('i-customer').textContent = [inv.customer_name, inv.customer_address].filter(Boolean).join('\n');
+      $('i-issued').textContent = day(inv.created_at, c);
+      $('i-due-wrap').hidden = !inv.due_date;
+      $('i-due').textContent = day(inv.due_date, c);
+
+      $('i-items').replaceChildren(...(inv.items || []).map(i => {
+        const tr = document.createElement('tr');
+        const cell = (cls, text) => { const td = document.createElement('td'); td.className = cls; td.textContent = text; tr.append(td); };
+        cell('desc', i.description);
+        cell('num qty', i.quantity);
+        cell('num unit', money(i.unit_price, c));
+        cell('num line-total', money(Number(i.quantity) * Number(i.unit_price), c));
+        cell('calc', `${i.quantity} × ${money(i.unit_price, c)}`);
+        return tr;
+      }));
+
+      $('i-subtotal').textContent = money(inv.subtotal, c);
+      $('i-tax-label').textContent = `Tax (${Number(inv.tax_rate) || 0}%)`;
+      $('i-tax').textContent = money(inv.tax_amount, c);
+      $('i-total').textContent = money(inv.total, c);
+
+      $('i-paid').hidden = inv.status !== 'paid';
+      $('i-paid').textContent = `Paid${inv.paid_at ? ' on ' + day(inv.paid_at, c) : ''}. Thank you!`;
+      $('i-void').hidden = inv.status !== 'void';
+      $('i-notes-wrap').hidden = !inv.notes;
+      $('i-notes').textContent = inv.notes || '';
+
+      const email = inv.business_email;
+      $('i-contact').hidden = !email;
+      if (email) {
+        $('i-email').href = 'mailto:' + encodeURIComponent(email).replace(/%40/g, '@');
+        $('i-email').textContent = email;
+      }
+    }
+
+    async function load() {
+      show('loading');
+      if (!token) return show('not-found');
+      try {
+        const res = await fetch(ENDPOINT, { method: 'POST', body: JSON.stringify({ token }) });
+        let data = null;
+        try { data = await res.json(); } catch (_) {}
+        if (res.ok && data && !data.error) { render(data); return show('invoice'); }
+        if (res.status === 404) return show('not-found');
+        $('failed-text').textContent = res.status === 429
+          ? 'Too many requests. Please wait a minute and try again.'
+          : 'Something went wrong on our side. Please try again.';
+        show('failed');
+      } catch (_) {
+        // fetch() rejects with a TypeError when the network is down
+        $('failed-text').textContent = 'Please check your connection and try again.';
+        show('failed');
+      }
+    }
+
+    $('print-btn').addEventListener('click', () => window.print());
+    $('retry-btn').addEventListener('click', load);
+    load();
+  </script>
+</body>
+</html>
