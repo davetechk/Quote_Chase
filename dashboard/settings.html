@@ -36,6 +36,10 @@
     .team-list { border: 1.5px solid var(--border); border-radius: var(--radius); margin-bottom: 16px; }
     .team-list .list-item { padding: 12px 16px; }
     .action-btn--plain { background: var(--bg-3); color: var(--text-2); border-color: var(--border); }
+    .invite-row { display: flex; gap: 10px; }
+    .invite-row .form-input { flex: 1; min-width: 0; }
+    @media (max-width: 500px) { .invite-row { flex-direction: column; } .invite-row .btn { justify-content: center; } }
+    #seats-full a { text-decoration: underline; }
   </style>
 </head>
 <body>
@@ -128,7 +132,7 @@
           <button class="btn btn--primary" id="save-me-btn" type="button">Save my details</button>
         </section>
 
-        <!-- ── Team (owner) ──────────────────────────────────────────────── -->
+        <!-- ── Team (owner manages it; team members see a read-only list) ─── -->
         <section class="settings-section" id="team-section" hidden>
           <div class="settings-section__title">Team</div>
           <div class="settings-section__sub" id="seat-usage"></div>
@@ -138,7 +142,14 @@
             <div class="form-label">Pending invites</div>
             <div class="team-list" id="invites-list"></div>
           </div>
-          <button class="btn btn--ghost" id="invite-btn" type="button">+ Invite team member</button>
+          <div id="invite-form" hidden>
+            <div class="alert alert--info" id="seats-full">Your plan is full — <a href="#billing">upgrade to add more people</a></div>
+            <label class="form-label" for="invite-email">Invite someone by email</label>
+            <div class="invite-row">
+              <input class="form-input" type="email" id="invite-email" placeholder="name@theirbusiness.co.uk" autocomplete="off" maxlength="254" />
+              <button class="btn btn--primary" id="invite-btn" type="button">Send invite</button>
+            </div>
+          </div>
         </section>
 
         <!-- ── Billing (owner sees plan buttons) ─────────────────────────── -->
@@ -184,6 +195,7 @@
 
     let ctx = null;
     let removing = null; // member user_id awaiting the in-page confirm
+    let revoking = null; // invite id awaiting the in-page confirm
     const $ = id => document.getElementById(id);
     const isOwner = () => ctx.member.role === 'owner';
 
@@ -266,34 +278,81 @@
     }));
 
     // ── Team ─────────────────────────────────────────────────────────────────
+    const DAY = 86400000;
+    const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
+
+    async function serverMessage(error) {
+      try { return (await error.context.json()).error; } catch (_) { return null; }
+    }
+
+    function memberRow(p) {
+      const controls = !isOwner() || p.role === 'owner' ? ''
+        : removing === p.user_id
+          ? `<span class="action-row"><button class="action-btn action-btn--lost" type="button" data-remove-confirm="${sanitize(p.user_id)}">Remove</button>
+               <button class="action-btn action-btn--plain" type="button" data-remove-cancel="1">Cancel</button></span>`
+          : `<button class="action-btn action-btn--lost" type="button" data-remove="${sanitize(p.user_id)}">Remove</button>`;
+      return `
+        <div class="list-item">
+          <span class="list-item__main"><strong>${sanitize(p.full_name || p.email)}</strong>
+            <span class="list-item__sub">${sanitize(p.email)} · ${p.role === 'owner' ? 'Owner' : 'Team member'}</span></span>
+          ${controls}
+        </div>`;
+    }
+
+    function inviteRow(v) {
+      const left = new Date(v.expires_at) - Date.now();
+      const controls = revoking === v.id
+        ? `<span class="action-row"><button class="action-btn action-btn--lost" type="button" data-revoke-confirm="${sanitize(v.id)}">Revoke</button>
+             <button class="action-btn action-btn--plain" type="button" data-revoke-cancel="1">Cancel</button></span>`
+        : `<span class="action-row"><button class="action-btn action-btn--plain" type="button" data-resend="${sanitize(v.email)}">Resend</button>
+             <button class="action-btn action-btn--plain" type="button" data-revoke="${sanitize(v.id)}">Revoke</button></span>`;
+      return `
+        <div class="list-item">
+          <span class="list-item__main">${sanitize(v.email)}
+            <span class="list-item__sub">${left > 0 ? `Expires in ${plural(Math.ceil(left / DAY), 'day')}` : 'Expired'}</span></span>
+          ${controls}
+        </div>`;
+    }
+
     async function loadTeam() {
       const [m, i] = await Promise.all([
         supabase.from('members').select('user_id, full_name, email, role, created_at')
           .eq('business_id', ctx.business.id).order('created_at', { ascending: true }),
-        supabase.from('invites').select('id, email, expires_at, accepted_at, created_at')
-          .eq('business_id', ctx.business.id).is('accepted_at', null).order('created_at', { ascending: false }),
+        isOwner()
+          ? supabase.from('invites').select('id, email, expires_at, accepted_at, created_at')
+              .eq('business_id', ctx.business.id).is('accepted_at', null).order('created_at', { ascending: false })
+          : { data: [] },
       ]);
       if (m.error) return say('team-msg', "Couldn't load your team.", false);
+      $('members-list').innerHTML = m.data.map(memberRow).join('');
+      if (!isOwner()) return;
+
+      // Seats = members + invites still waiting to be accepted (expired ones don't count)
+      const invites = i.data || [];
+      const pending = invites.filter(v => new Date(v.expires_at) > new Date()).length;
+      const used = m.data.length + pending;
       const seats = ctx.limits.seats;
-      $('seat-usage').textContent = seats == null
-        ? `${m.data.length} member${m.data.length === 1 ? '' : 's'} · unlimited seats`
-        : `${m.data.length} of ${seats} seat${seats === 1 ? '' : 's'} used`;
-      $('members-list').innerHTML = m.data.map(p => `
-        <div class="list-item">
-          <span class="list-item__main"><strong>${sanitize(p.full_name || p.email)}</strong>
-            <span class="list-item__sub">${sanitize(p.email)} · ${p.role === 'owner' ? 'Owner' : 'Team member'}</span></span>
-          ${p.role === 'owner' ? '' : removing === p.user_id
-            ? `<span class="action-row"><button class="action-btn action-btn--lost" type="button" data-remove-confirm="${sanitize(p.user_id)}">Remove</button>
-                 <button class="action-btn action-btn--plain" type="button" data-remove-cancel="1">Cancel</button></span>`
-            : `<button class="action-btn action-btn--lost" type="button" data-remove="${sanitize(p.user_id)}">Remove</button>`}
-        </div>`).join('');
-      const invites = (i.data || []).filter(v => new Date(v.expires_at) > new Date());
+      const full = seats != null && used >= seats;
+      $('seat-usage').textContent = seats == null ? plural(used, 'user') : `${used} of ${plural(seats, 'seat')} used`;
       $('invites-wrap').hidden = !invites.length;
-      $('invites-list').innerHTML = invites.map(v => `
-        <div class="list-item">
-          <span class="list-item__main">${sanitize(v.email)}<span class="list-item__sub">Expires ${sanitize(formatDate(v.expires_at))}</span></span>
-          <button class="action-btn action-btn--plain" type="button" data-revoke="${sanitize(v.id)}">Revoke</button>
-        </div>`).join('');
+      $('invites-list').innerHTML = invites.map(inviteRow).join('');
+      $('seats-full').classList.toggle('visible', full);
+      $('invite-email').disabled = full;
+      $('invite-btn').disabled = full;
+    }
+
+    // Sending to an address with a pending invite re-sends it with a fresh 7-day link
+    async function sendInvite(email, btn) {
+      btn.disabled = true;
+      const { data, error } = await supabase.functions.invoke('send-invite', { body: { email } });
+      btn.disabled = false;
+      if (error) {
+        say('team-msg', (await serverMessage(error)) || "Couldn't send the invite. Please try again.", false);
+        return false;
+      }
+      say('team-msg', `Invite ${data?.resent ? 're-sent' : 'sent'} to ${email}`);
+      await loadTeam();
+      return true;
     }
 
     $('team-section').addEventListener('click', async e => {
@@ -307,14 +366,26 @@
         say('team-msg', error ? "Couldn't remove that member." : 'Team member removed.', !error);
         return loadTeam();
       }
-      if (d.revoke) {
+      if (d.resend) return sendInvite(d.resend, e.target);
+      if (d.revoke) { revoking = d.revoke; return loadTeam(); }
+      if (d.revokeCancel) { revoking = null; return loadTeam(); }
+      if (d.revokeConfirm) {
         e.target.disabled = true;
-        const res = await supabase.from('invites').delete().eq('id', d.revoke).select('id');
+        const res = await supabase.from('invites').delete().eq('id', d.revokeConfirm).select('id');
+        revoking = null;
         say('team-msg', saved(res) ? 'Invite revoked.' : "Couldn't revoke the invite.", saved(res));
         return loadTeam();
       }
     });
-    $('invite-btn').addEventListener('click', () => say('team-msg', 'Inviting team members is coming in the next update.'));
+
+    async function inviteFromForm() {
+      const input = $('invite-email');
+      const email = input.value.trim();
+      if (!email || !input.checkValidity()) return say('team-msg', 'Please enter a valid email address.', false);
+      if (await sendInvite(email, $('invite-btn'))) input.value = '';
+    }
+    $('invite-btn').addEventListener('click', inviteFromForm);
+    $('invite-email').addEventListener('keydown', e => { if (e.key === 'Enter' && !$('invite-btn').disabled) inviteFromForm(); });
 
     // ── Billing ──────────────────────────────────────────────────────────────
     function renderBilling(b) {
@@ -359,9 +430,12 @@
       if (isOwner()) {
         fillBusiness(ctx.business);
         fillMessages(ctx.business);
-        for (const s of ['business-section', 'messages-section', 'team-section']) $(s).hidden = false;
-        loadTeam();
+        for (const s of ['business-section', 'messages-section', 'invite-form']) $(s).hidden = false;
+      } else {
+        $('seat-usage').textContent = 'The people on your QuoteChase account.';
       }
+      $('team-section').hidden = false;
+      loadTeam();
       renderBilling(ctx.business);
       if (location.hash === '#billing') $('billing').scrollIntoView();
       if (new URLSearchParams(location.search).get('paid') === '1') confirmPayment();

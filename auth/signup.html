@@ -64,6 +64,7 @@
         <label class="form-label" for="email">Email address</label>
         <input class="form-input" type="email" id="email" name="email"
                placeholder="john@smithroofing.co.uk" autocomplete="email" required />
+        <p class="form-hint" id="invite-email-hint" hidden>Use the email address your invite was sent to.</p>
       </div>
 
       <div class="form-group">
@@ -122,6 +123,7 @@
     const inviteToken = new URLSearchParams(location.search).get('invite');
     if (inviteToken) {
       document.getElementById('business-group').hidden = true;
+      document.getElementById('invite-email-hint').hidden = false;
       document.getElementById('signup-title').textContent = 'Join your team on QuoteChase';
       document.getElementById('signup-sub').textContent = 'Create your login to start sending and tracking quotes with your team.';
       btnText.textContent = 'Join team';
