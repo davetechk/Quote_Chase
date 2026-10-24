@@ -485,9 +485,23 @@
 
     /* ── Footer ───────────────────────────────────────────────────────────── */
     .footer { position: relative; z-index: 1; }
+    .deleted-banner {
+      position: fixed; left: 16px; right: 16px; bottom: 16px; z-index: 200; max-width: 420px; margin: 0 auto;
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+      background: var(--bg-2); border: 1.5px solid var(--border); border-radius: var(--radius);
+      padding: 12px 12px 12px 16px; font-size: 0.9rem; color: var(--text); box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+    }
+    .deleted-banner button { color: var(--text-3); font-size: 1.1rem; line-height: 1; padding: 6px 8px; }
+    .deleted-banner button:hover { color: var(--text); }
   </style>
 </head>
 <body>
+
+  <!-- Shown after Settings → Delete account sends people here with ?deleted=1 -->
+  <div class="deleted-banner" id="deleted-banner" role="status" hidden>
+    <span>Your account has been deleted.</span>
+    <button type="button" id="deleted-close" aria-label="Dismiss">✕</button>
+  </div>
 
   <!-- ── Nav ──────────────────────────────────────────────────────────────── -->
   <nav class="nav">
@@ -1005,6 +1019,15 @@
         }
       });
     });
+  </script>
+
+  <script>
+    if (new URLSearchParams(location.search).get('deleted') === '1') {
+      const banner = document.getElementById('deleted-banner');
+      banner.hidden = false;
+      document.getElementById('deleted-close').addEventListener('click', () => { banner.hidden = true; });
+      history.replaceState(null, '', location.pathname + location.hash);
+    }
   </script>
 
   <!-- Tracker — separate module, failure here won't affect anything above -->

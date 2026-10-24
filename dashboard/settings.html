@@ -40,6 +40,12 @@
     .invite-row .form-input { flex: 1; min-width: 0; }
     @media (max-width: 500px) { .invite-row { flex-direction: column; } .invite-row .btn { justify-content: center; } }
     #seats-full a { text-decoration: underline; }
+    .danger-zone { border-color: rgba(220, 38, 38, 0.45); }
+    .danger-zone .settings-section__title { color: var(--red); }
+    .btn--danger-outline { background: transparent; color: var(--red); border: 1.5px solid var(--red); }
+    .btn--danger { background: var(--red); color: #fff; border: 1.5px solid var(--red); }
+    #delete-input { max-width: 260px; }
+    #delete-msg a { text-decoration: underline; }
   </style>
 </head>
 <body>
@@ -169,10 +175,23 @@
             <a class="billing-plan" id="buy-pro"><div class="billing-plan__name">Pro</div>
               <div class="billing-plan__price">£99</div><div class="billing-plan__quota">Unlimited quotes &amp; team · invoicing</div></a>
           </div>
-          <p class="text-sm" id="billing-owner-note" hidden>
-            <a class="text-orange" href="mailto:hello@getquotechase.com?subject=Manage%20my%20QuoteChase%20subscription">Manage or cancel subscription</a>
-            · To delete your account, email <a class="text-orange" href="mailto:hello@getquotechase.com">hello@getquotechase.com</a>.
-          </p>
+          <button class="btn btn--ghost btn--sm" id="portal-btn" type="button" hidden>Manage or cancel subscription</button>
+        </section>
+
+        <!-- ── Delete account ────────────────────────────────────────────── -->
+        <section class="settings-section danger-zone" id="delete-section">
+          <div class="settings-section__title">Delete account</div>
+          <div class="settings-section__sub" id="delete-text"></div>
+          <div class="alert alert--error" id="delete-msg" role="alert"></div>
+          <button class="btn btn--danger-outline btn--sm" id="delete-start" type="button">Delete account</button>
+          <div id="delete-confirm" hidden>
+            <label class="form-label" for="delete-input">Type DELETE to confirm</label>
+            <input class="form-input" id="delete-input" autocomplete="off" autocapitalize="characters" spellcheck="false" />
+            <div class="action-row mt-16">
+              <button class="btn btn--danger btn--sm" id="delete-go" type="button" disabled>Delete forever</button>
+              <button class="btn btn--ghost btn--sm" id="delete-cancel" type="button">Cancel</button>
+            </div>
+          </div>
         </section>
 
       </main>
@@ -402,9 +421,68 @@
         card.href = checkoutUrl(p, b.id, ctx.user.email);
         card.classList.toggle('billing-plan--current', b.status === 'active' && b.plan === p);
       }
-      $('billing-plans').hidden = !isOwner();
-      $('billing-owner-note').hidden = !isOwner();
+      // Paid plans manage their subscription in Dodo's portal; trials (and lapsed plans) can buy one
+      const paid = b.plan !== 'trial';
+      $('portal-btn').hidden = !isOwner() || !paid;
+      $('billing-plans').hidden = !isOwner() || (paid && ['active', 'past_due'].includes(b.status));
     }
+
+    $('portal-btn').addEventListener('click', async e => {
+      const btn = e.currentTarget;
+      btn.disabled = true;
+      btn.textContent = 'Opening…';
+      const { data, error } = await supabase.functions.invoke('billing-portal');
+      if (!error && data?.url) return location.assign(data.url);
+      btn.disabled = false;
+      btn.textContent = 'Manage or cancel subscription';
+      say('billing-msg', (error && await serverMessage(error)) || "Couldn't open the billing portal. Please try again.", false);
+    });
+
+    // ── Delete account ───────────────────────────────────────────────────────
+    function showDeleteConfirm(on) {
+      $('delete-confirm').hidden = !on;
+      $('delete-start').hidden = on;
+      $('delete-input').value = '';
+      $('delete-go').disabled = true;
+      $('delete-msg').classList.remove('visible');
+      if (on) $('delete-input').focus();
+    }
+
+    function deleteError(msg, billingLink) {
+      const el = $('delete-msg');
+      el.textContent = msg + ' ';
+      if (billingLink) {
+        const a = document.createElement('a');
+        a.href = '#billing';
+        a.textContent = 'Go to billing';
+        el.append(a);
+      }
+      el.classList.add('visible');
+    }
+
+    $('delete-start').addEventListener('click', () => showDeleteConfirm(true));
+    $('delete-cancel').addEventListener('click', () => showDeleteConfirm(false));
+    $('delete-input').addEventListener('input', e => { $('delete-go').disabled = e.target.value !== 'DELETE'; });
+
+    $('delete-go').addEventListener('click', async e => {
+      if ($('delete-input').value !== 'DELETE') return;
+      const btn = e.currentTarget;
+      btn.disabled = true;
+      $('delete-cancel').disabled = true;
+      btn.textContent = 'Deleting…';
+      const { error } = await supabase.functions.invoke('delete-account', { body: { confirm: 'DELETE' } });
+      if (error) {
+        btn.disabled = false;
+        $('delete-cancel').disabled = false;
+        btn.textContent = 'Delete forever';
+        const status = error.context?.status;
+        return deleteError((await serverMessage(error)) || "Couldn't delete your account. Please try again.", status === 409);
+      }
+      // The login no longer exists: clear what we keep in the browser and leave
+      try { sessionStorage.removeItem('qc_ctx'); localStorage.removeItem('qc_admin'); } catch (_) {}
+      await supabase.auth.signOut({ scope: 'local' }).catch(() => {});
+      location.replace('/?deleted=1');
+    });
 
     // After Dodo checkout: poll until the webhook marks the business active (max 30s)
     async function confirmPayment() {
@@ -427,6 +505,9 @@
       $('full-name').value = ctx.member.full_name || '';
       $('notify-email').checked = ctx.member.notify_email !== false;
       $('my-email').textContent = `Signed in as ${ctx.user.email}`;
+      $('delete-text').textContent = isOwner()
+        ? "Permanently deletes your business, all quotes, invoices and team members' logins. This can't be undone."
+        : "Permanently deletes your login. Your team's data stays.";
       if (isOwner()) {
         fillBusiness(ctx.business);
         fillMessages(ctx.business);

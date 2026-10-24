@@ -162,6 +162,7 @@
     let editing = null;     // { id?, quote_id? } while the editor is open
     let confirmDelete = null;
     let confirmSend = null; // invoice id awaiting the in-page send confirm
+    let confirmVoid = null; // invoice id awaiting the in-page void confirm
 
     const $ = id => document.getElementById(id);
     // Invoices need pence/cents, unlike the rounded dashboard figures
@@ -192,6 +193,9 @@
         const open = inv.status === 'draft' || inv.status === 'sent';
         const actions = confirmDelete === inv.id
           ? `${b('delete-confirm', 'Delete draft', 'lost')}${b('delete-cancel', 'Cancel')}`
+          : confirmVoid === inv.id
+          ? `<span class="confirm-text">Void ${sanitize(invNo(inv.number))}? It can't be un-voided.</span>
+             ${b('void-confirm', 'Void', 'lost')}${b('void-cancel', 'Cancel')}`
           : confirmSend === inv.id
           ? `<span class="confirm-text">Send ${sanitize(invNo(inv.number))} (${sanitize(money(inv.total, inv.currency))}) to ${sanitize(inv.customer_email)}?</span>
              ${b('send-confirm', 'Send', 'won')}${b('send-cancel', 'Cancel')}`
@@ -200,7 +204,7 @@
              SEND_LABEL[inv.status] && b('send', SEND_LABEL[inv.status]),
              inv.status !== 'draft' && inv.public_token && b('copy', 'Copy customer link'),
              open && b('paid', 'Mark paid', 'won'),
-             open && b('void', 'Void'),
+             inv.status !== 'void' && b('void', 'Void'),
              inv.status === 'draft' && b('delete', 'Delete', 'lost')].filter(Boolean).join('');
         return `
           <tr>
@@ -394,16 +398,20 @@
         return renderList();
       }
       if (action === 'send-cancel') { confirmSend = null; return renderList(); }
+      if (action === 'void' || action === 'void-cancel') {
+        confirmVoid = action === 'void' ? inv.id : null; confirmSend = confirmDelete = null;
+        return renderList();
+      }
       if (action === 'send-confirm') return sendInvoice(inv, btn);
       if (action === 'delete' || action === 'delete-cancel') { confirmDelete = action === 'delete' ? inv.id : null; confirmSend = null; return renderList(); }
 
       btn.disabled = true;
       const res = action === 'delete-confirm'
         ? await supabase.from('invoices').delete().eq('id', inv.id).select('id')
-        : await supabase.from('invoices').update({ status: action }).eq('id', inv.id).select('id');
-      confirmDelete = null;
+        : await supabase.from('invoices').update({ status: action === 'void-confirm' ? 'void' : action }).eq('id', inv.id).select('id');
+      confirmDelete = confirmVoid = null;
       if (res.error || !res.data?.length) { btn.disabled = false; return flash('error-msg', "Couldn't update the invoice. Please try again."); }
-      flash('success-msg', { paid: `${invNo(inv.number)} marked paid.`, void: `${invNo(inv.number)} voided.`, 'delete-confirm': `${invNo(inv.number)} deleted.` }[action]);
+      flash('success-msg', { paid: `${invNo(inv.number)} marked paid.`, 'void-confirm': `${invNo(inv.number)} voided.`, 'delete-confirm': `${invNo(inv.number)} deleted.` }[action]);
       await loadInvoices();
     });
 
