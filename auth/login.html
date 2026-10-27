@@ -81,7 +81,7 @@
   <script type="module">
     import { signIn, getSession, friendlyAuthError } from '/js/auth.js';
     import { trackVisit } from '/js/tracker.js';
-    import { captcha, CAPTCHA_ERROR } from '/js/turnstile.js';
+    import { captcha, CAPTCHA_WAIT } from '/js/turnstile.js';
 
     trackVisit();
 
@@ -96,10 +96,10 @@
     const btnText       = document.getElementById('btn-text');
     const spinner       = document.getElementById('spinner');
     const errorMsg      = document.getElementById('error-msg');
-    const check         = captcha(document.getElementById('captcha'), loginBtn);
+    const check         = captcha(document.getElementById('captcha'));
 
     function setLoading(on) {
-      loginBtn.disabled = on || !check.token();
+      loginBtn.disabled = on;
       btnText.textContent = on ? 'Signing in…' : 'Sign in';
       spinner.classList.toggle('visible', on);
     }
@@ -122,7 +122,7 @@
         showError('Please enter your email and password.');
         return;
       }
-      if (!check.token()) { showError(CAPTCHA_ERROR); return; }
+      if (!check.token()) { showError(CAPTCHA_WAIT); return; }
 
       setLoading(true);
       try {
@@ -130,8 +130,9 @@
         window.location.href = '/dashboard/index.html';
       } catch (err) {
         showError(friendlyAuthError(err));
-        check.reset();
         setLoading(false);
+      } finally {
+        check.reset();
       }
     }
 

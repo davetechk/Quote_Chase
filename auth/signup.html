@@ -99,7 +99,7 @@
   <script type="module">
     import { signUp, getSession, friendlyAuthError } from '/js/auth.js';
     import { trackVisit } from '/js/tracker.js';
-    import { captcha, CAPTCHA_ERROR } from '/js/turnstile.js';
+    import { captcha, CAPTCHA_WAIT } from '/js/turnstile.js';
 
     trackVisit();
 
@@ -117,7 +117,7 @@
     const spinner           = document.getElementById('spinner');
     const errorMsg          = document.getElementById('error-msg');
     const successMsg        = document.getElementById('success-msg');
-    const check             = captcha(document.getElementById('captcha'), signupBtn);
+    const check             = captcha(document.getElementById('captcha'));
 
     // Invite mode: /auth/signup.html?invite=<token> joins an existing team
     const inviteToken = new URLSearchParams(location.search).get('invite');
@@ -130,7 +130,7 @@
     }
 
     function setLoading(on) {
-      signupBtn.disabled = on || !check.token();
+      signupBtn.disabled = on;
       btnText.textContent = on ? 'Creating account…' : inviteToken ? 'Join team' : 'Create free account';
       spinner.classList.toggle('visible', on);
     }
@@ -168,7 +168,7 @@
         showError('Password must be at least 8 characters.');
         return;
       }
-      if (!check.token()) { showError(CAPTCHA_ERROR); return; }
+      if (!check.token()) { showError(CAPTCHA_WAIT); return; }
 
       setLoading(true);
       try {
@@ -181,7 +181,6 @@
         if (!authData?.session) {
           // Email confirmation is on — no session until they confirm
           showSuccess('Account created! Check your inbox to confirm your email, then sign in.');
-          check.reset();
           setLoading(false);
           return;
         }
@@ -193,8 +192,9 @@
         showError(inviteToken && /database error/i.test(err.message || '')
           ? 'This invite link is invalid or has expired. Ask your team owner for a new one.'
           : friendlyAuthError(err));
-        check.reset();
         setLoading(false);
+      } finally {
+        check.reset();
       }
     }
 

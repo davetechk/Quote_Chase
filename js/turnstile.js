@@ -1,19 +1,17 @@
 // Cloudflare Turnstile bot check on the sign-in, sign-up and forgot-password forms.
 // Each page loads https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit
 // (async defer) itself. Supabase only checks the token once CAPTCHA is enabled in its dashboard.
-// TODO: replace with the real site key. This is Cloudflare's always-pass test key.
-const SITE_KEY = '1x00000000000000000000AA';
+const SITE_KEY = '0x4AAAAAAFotJ5YkanHz0_4i';
 
-export const CAPTCHA_ERROR = 'Please complete the security check and try again.';
+export const CAPTCHA_WAIT = 'Please wait for the security check to finish.';
 
-// Renders the widget into `el` and keeps `button` disabled until it has a token.
-// Tokens are single-use: call reset() after every failed submit.
-export function captcha(el, button) {
+// Renders the widget into `el`; token() is '' until the check has finished.
+// Tokens are single-use: call reset() after every submit, success or error.
+export function captcha(el) {
   let token = '';
   let widgetId;
-  button.disabled = true;
 
-  const set = t => { token = t; button.disabled = !t; };
+  const set = t => { token = t; };
   const render = () => {
     widgetId = window.turnstile.render(el, {
       sitekey: SITE_KEY,
