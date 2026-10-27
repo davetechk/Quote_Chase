@@ -24,6 +24,7 @@
       display: inline-block; margin-left: 6px; padding: 2px 8px; border-radius: 100px;
       font-size: 0.7rem; font-weight: 700; background: var(--orange-dim); color: var(--orange); white-space: nowrap;
     }
+    .chip--plain { background: var(--bg-3); color: var(--text-2); }
     .cell-sub { display: block; font-size: 0.75rem; color: var(--text-3); font-weight: 400; overflow-wrap: anywhere; }
     tr[data-id] { cursor: pointer; }
     .detail-label {
@@ -151,6 +152,7 @@
     }
 
     const viewedChip = q => q.view_count > 0 ? `<span class="chip">Viewed ${q.view_count}×</span>` : '';
+    const sourceChip = q => q.source === 'bcc' ? '<span class="chip chip--plain">From email</span>' : '';
 
     function quickActions(q) {
       if (!isOpen(q) || q.archived) return '<span class="text-muted text-xs">—</span>';
@@ -176,7 +178,7 @@
           <td data-label="Job" class="cell-clip">${sanitize(q.job_description)}</td>
           <td data-label="Amount" class="cell-amount">${sanitize(formatMoney(q.amount, q.currency))}</td>
           <td data-label="Follow-ups">${followups(q)}</td>
-          <td data-label="Status">${statusBadge(q)}${viewedChip(q)}</td>
+          <td data-label="Status">${statusBadge(q)}${viewedChip(q)}${sourceChip(q)}</td>
           <td data-label="Sent" class="cell-muted">${sanitize(formatDate(q.sent_at || q.created_at))}</td>
           <td data-label="Actions">${quickActions(q)}</td>
         </tr>`).join('') : '<tr><td colspan="7" class="table-empty">No quotes found.</td></tr>';
@@ -185,7 +187,7 @@
     // Every quote: search and the status filter work on the full list in the browser
     const fetchQuotes = businessId => supabase
       .from('quotes')
-      .select('id, customer_name, customer_email, customer_phone, job_description, amount, currency, status, paused, archived, public_token, followup_step, next_followup_at, view_count, last_viewed_at, sent_at, created_at')
+      .select('id, customer_name, customer_email, customer_phone, job_description, amount, currency, status, source, paused, archived, public_token, followup_step, next_followup_at, view_count, last_viewed_at, sent_at, created_at')
       .eq('business_id', businessId)
       .order('created_at', { ascending: false });
 
@@ -250,7 +252,7 @@
         <div class="detail-grid">
           <div>
             <div class="detail-label">Status</div>
-            ${statusBadge(q)}${viewedChip(q)}
+            ${statusBadge(q)}${viewedChip(q)}${sourceChip(q)}
             ${q.last_viewed_at ? `<p class="text-xs text-muted mt-8">Last opened ${sanitize(when(q.last_viewed_at))}</p>` : ''}
           </div>
           <div>

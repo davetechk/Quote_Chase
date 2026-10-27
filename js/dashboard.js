@@ -26,7 +26,7 @@ export async function requireAuth() {
 // Two rounds of requests: (1) member + business, with is_admin alongside;
 // (2) plan limits alongside the page's own data — load(businessId) — returned as ctx.data.
 // With page set, the sidebar is drawn from this tab's last context straight away.
-const BUSINESS_COLS = 'id, name, trade, country, reply_to_email, booking_url, followup_templates, plan, status, trial_ends_at, current_period_end';
+const BUSINESS_COLS = 'id, name, trade, country, reply_to_email, booking_url, followup_templates, inbound_token, plan, status, trial_ends_at, current_period_end';
 const CTX_KEY = 'qc_ctx';
 
 export async function getContext({ load, page } = {}) {
@@ -136,10 +136,10 @@ export function eventText(ev, quote, max) {
   const amount = quote ? formatMoney(quote.amount, quote.currency) : '';
   const d = ev.detail || {};
   switch (ev.type) {
-    case 'sent':          return `Quote sent to ${who}`;
+    case 'sent':          return d.via === 'bcc' ? `Quote to ${who} added from your email` : `Quote sent to ${who}`;
     case 'followup_sent': return `Day-${d.day || FOLLOWUP_DAYS[(d.step || 1) - 1] || '?'} follow-up sent to ${who}`;
     case 'viewed':        return `${who} opened your quote`;
-    case 'replied':       return `${who} replied`;
+    case 'replied':       return d.via === 'email' ? `${who} replied by email: “${clip(d.snippet || '', max)}”` : `${who} replied`;
     case 'accepted':      return `${who} accepted ${amount}`;
     case 'declined':      return `${who} declined the quote`;
     case 'question':      return `${who} asked: “${clip(d.message || '', max)}”`;

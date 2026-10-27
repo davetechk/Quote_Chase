@@ -39,6 +39,8 @@
     .invite-row { display: flex; gap: 10px; }
     .invite-row .form-input { flex: 1; min-width: 0; }
     @media (max-width: 500px) { .invite-row { flex-direction: column; } .invite-row .btn { justify-content: center; } }
+    .bcc-steps { list-style: decimal; margin: 16px 0 0 20px; display: flex; flex-direction: column; gap: 6px; font-size: 0.9rem; color: var(--text-2); }
+    #bcc-address { font-family: ui-monospace, monospace; overflow-wrap: anywhere; display: flex; align-items: center; user-select: all; }
     #seats-full a { text-decoration: underline; }
     .danger-zone { border-color: rgba(220, 38, 38, 0.45); }
     .danger-zone .settings-section__title { color: var(--red); }
@@ -118,6 +120,23 @@
           <div class="alert" id="messages-msg" role="status"></div>
           <div id="messages-list"></div>
           <button class="btn btn--primary" id="save-messages-btn" type="button">Save messages</button>
+        </section>
+
+        <!-- ── Add quotes by email (everyone) ───────────────────────────────── -->
+        <section class="settings-section" id="bcc-section" hidden>
+          <div class="settings-section__title">Add quotes by email</div>
+          <div class="settings-section__sub">Your QuoteChase address:</div>
+          <div class="alert" id="bcc-msg" role="status"></div>
+          <div class="invite-row">
+            <div class="form-input" id="bcc-address"></div>
+            <button class="btn btn--primary" id="bcc-copy" type="button">Copy</button>
+          </div>
+          <ol class="bcc-steps">
+            <li>Send your quote from your own email as usual.</li>
+            <li>Put your customer in To and BCC this address.</li>
+            <li>Include the total with £ or $ (e.g. £4,500). QuoteChase adds it and starts the follow-ups.</li>
+          </ol>
+          <p class="form-hint">Only emails sent from your team's addresses are accepted.</p>
         </section>
 
         <!-- ── My details (everyone) ─────────────────────────────────────── -->
@@ -500,6 +519,17 @@
       say('billing-msg', "We haven't had confirmation yet. It can take a minute — refresh shortly, or email hello@getquotechase.com.", false);
     }
 
+    // ── Add quotes by email ─────────────────────────────────────────────────
+    $('bcc-copy').addEventListener('click', async () => {
+      const address = $('bcc-address').textContent;
+      // Clipboard can hang or be blocked; fall back to selecting the address after 1s
+      const copied = await Promise.race([(navigator.clipboard?.writeText(address) || Promise.reject()).then(() => true, () => false),
+                                         new Promise(r => setTimeout(() => r(false), 1000))]);
+      if (copied) return say('bcc-msg', 'Address copied.');
+      getSelection().selectAllChildren($('bcc-address'));
+      say('bcc-msg', 'Address selected — press Ctrl+C (or long-press) to copy it.');
+    });
+
     async function init() {
       ctx = await getContext({ page: 'settings' });
       $('full-name').value = ctx.member.full_name || '';
@@ -514,6 +544,10 @@
         for (const s of ['business-section', 'messages-section', 'invite-form']) $(s).hidden = false;
       } else {
         $('seat-usage').textContent = 'The people on your QuoteChase account.';
+      }
+      if (ctx.business.inbound_token) {
+        $('bcc-address').textContent = `${ctx.business.inbound_token}@in.getquotechase.com`;
+        $('bcc-section').hidden = false;
       }
       $('team-section').hidden = false;
       loadTeam();
