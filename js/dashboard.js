@@ -185,15 +185,7 @@ export function renderSidebar({ member, business, limits, isAdmin }, activePage)
   const sidebarHTML = `
     <aside class="sidebar" id="sidebar">
       <div class="sidebar-header">
-        <a href="/dashboard/index.html" class="sidebar-logo">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 50" width="140" height="44">
-            <g transform="translate(4,7)">
-              <circle cx="18" cy="18" r="14" fill="none" stroke="#6B7280" stroke-width="3.5"/>
-              <path d="M12 23 L32 3 M32 3 L22 3 M32 3 L32 13" stroke="#FF7A00" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-            </g>
-            <text x="52" y="32" font-family="'DM Sans', sans-serif" font-size="20" font-weight="800" fill="#F8F9FA" letter-spacing="-0.5">Quote<tspan fill="#FF7A00" font-weight="400">Chase</tspan></text>
-          </svg>
-        </a>
+        <a href="/dashboard/index.html" class="logo" aria-label="QuoteChase"><img src="/icons/logo-72.png" width="36" height="36" alt=""><span class="logo__word">Quote<span>Chase</span></span></a>
       </div>
       <nav class="sidebar-nav" id="sidebar-nav">
         ${nav.map(link).join('')}

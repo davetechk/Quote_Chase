@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700;800&display=swap">
   <link rel="stylesheet" href="../css/main.css" />
   <link rel="stylesheet" href="../css/dashboard.css" />
+  <link rel="stylesheet" href="/css/logo.css" />
   <link rel="icon" href="/icons/favicon-32.png" type="image/png">
   <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
   <link rel="manifest" href="/manifest.webmanifest">
@@ -51,19 +52,19 @@
 
             <div class="form-group">
               <label class="form-label" for="customer-name">Customer name <span style="color:var(--red)">*</span></label>
-              <input class="form-input" type="text" id="customer-name"
+              <input class="form-input" type="text" id="customer-name" maxlength="120"
                      placeholder="John Smith" autocomplete="off" required />
             </div>
 
             <div class="form-group">
               <label class="form-label" for="quote-amount">Quote amount (<span id="currency-symbol">£</span>) <span style="color:var(--red)">*</span></label>
               <input class="form-input" type="number" id="quote-amount" inputmode="decimal"
-                     placeholder="4500" min="1" step="any" required />
+                     placeholder="4500" min="1" max="10000000" step="any" required />
             </div>
 
             <div class="form-group">
               <label class="form-label" for="customer-email">Customer email <span style="color:var(--red)">*</span></label>
-              <input class="form-input" type="email" id="customer-email" inputmode="email" autocomplete="off"
+              <input class="form-input" type="email" id="customer-email" maxlength="254" inputmode="email" autocomplete="off"
                      placeholder="john@example.com" required />
             </div>
 
@@ -72,7 +73,7 @@
                 Customer phone
                 <span class="text-xs text-muted" style="font-weight:400;">(optional — for SMS)</span>
               </label>
-              <input class="form-input" type="tel" id="customer-phone" inputmode="tel" autocomplete="off"
+              <input class="form-input" type="tel" id="customer-phone" maxlength="20" inputmode="tel" autocomplete="off"
                      placeholder="07700 900000" />
               <p class="form-error" id="phone-error"></p>
               <p class="form-hint">SMS notifications may be sent if a phone number is provided.</p>
@@ -80,7 +81,7 @@
 
             <div class="form-group span-2">
               <label class="form-label" for="job-description">Job description <span style="color:var(--red)">*</span></label>
-              <textarea class="form-input" id="job-description" rows="4"
+              <textarea class="form-input" id="job-description" rows="4" maxlength="2000"
                         placeholder="e.g. Full re-roof, 3-bed semi-detached, strip and replace with concrete tiles, include ridge and hip tiles, new felt and battens."
                         style="resize:vertical;"></textarea>
             </div>
@@ -252,7 +253,11 @@
         showError('Please fill in all required fields.');
         return;
       }
-      if (isNaN(Number(quoteAmount)) || Number(quoteAmount) <= 0) {
+      if (!customerEmailInput.checkValidity()) {
+        showError('Please enter a valid customer email.');
+        return;
+      }
+      if (isNaN(Number(quoteAmount)) || Number(quoteAmount) <= 0 || Number(quoteAmount) > 10000000) {
         showError('Please enter a valid quote amount.');
         return;
       }

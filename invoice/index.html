@@ -10,6 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/logo.css" />
   <style>
     :root {
       --bg: #F5F3EF; --card: #FFFFFF; --text: #1F2328; --muted: #5F6670; --line: #E6E2DA;
@@ -64,7 +65,8 @@
     .state { text-align: center; padding: 40px 24px; }
     .state h1 { font-size: 1.3rem; margin-bottom: 8px; }
     .footer { text-align: center; font-size: 0.8rem; color: var(--muted); margin-top: 20px; }
-    .footer a { color: inherit; }
+    .footer { --logo-ink: var(--text); }
+    .footer .logo { margin-left: 6px; }
 
     /* Phones: line items stack as cards, the quantity × price under the description */
     @media (max-width: 520px) {
@@ -152,7 +154,7 @@
       <div class="actions"><button class="btn btn--primary" id="print-btn" type="button">Print / Save as PDF</button></div>
     </div>
 
-    <p class="footer">Sent with <a href="https://www.getquotechase.com" rel="noopener">QuoteChase</a></p>
+    <p class="footer">Sent with <a href="https://www.getquotechase.com" class="logo" rel="noopener" aria-label="QuoteChase"><img src="/icons/logo-72.png" width="36" height="36" alt=""><span class="logo__word">Quote<span>Chase</span></span></a></p>
   </div>
 
   <script>

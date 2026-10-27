@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700;800&display=swap">
   <link rel="stylesheet" href="../css/main.css" />
   <link rel="stylesheet" href="../css/dashboard.css" />
+  <link rel="stylesheet" href="/css/logo.css" />
   <link rel="icon" href="/icons/favicon-32.png" type="image/png">
   <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
   <link rel="manifest" href="/manifest.webmanifest">
@@ -97,13 +98,13 @@
 
           <div class="form-group">
             <label class="form-label" for="reply-to">Reply-to email</label>
-            <input class="form-input" type="email" id="reply-to" inputmode="email" placeholder="you@yourbusiness.co.uk" />
+            <input class="form-input" type="email" id="reply-to" inputmode="email" maxlength="254" placeholder="you@yourbusiness.co.uk" />
             <p class="form-hint">Customer replies go here — defaults to your login email.</p>
           </div>
 
           <div class="form-group">
             <label class="form-label" for="booking-url">Booking link (optional)</label>
-            <input class="form-input" type="url" id="booking-url" inputmode="url" placeholder="https://calendly.com/your-name" />
+            <input class="form-input" type="url" id="booking-url" inputmode="url" maxlength="500" placeholder="https://calendly.com/your-name" />
             <p class="form-hint">Adds a “Book a call” button to your quote page. Must start with https://</p>
           </div>
 

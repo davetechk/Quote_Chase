@@ -27,7 +27,6 @@
   padding: 20px 20px 0;
   flex-shrink: 0;
 }
-.sidebar-logo { display: flex; align-items: center; }
 .sidebar-nav {
   flex: 1;
   padding: 24px 12px;

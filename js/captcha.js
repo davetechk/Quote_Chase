@@ -16,7 +16,7 @@ export function captcha(el) {
     widgetId = window.turnstile.render(el, {
       sitekey: SITE_KEY,
       theme: 'dark',
-      size: 'flexible',
+      size: el.clientWidth < 300 ? 'compact' : 'flexible',
       callback: set,
       'expired-callback': () => set(''),
       'error-callback': () => set(''),

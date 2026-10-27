@@ -1,8 +1,30 @@
+# Dependencies / build
 node_modules/
+.vercel/
 brag-output/
-.claude/
+
+# Secrets
 .env
 .env.*
+
+# OS files
 .DS_Store
 Thumbs.db
+desktop.ini
+
+# Editors / tools
 .vscode/
+.idea/
+.claude/
+*.swp
+
+# Logs
+*.log
+npm-debug.log*
+
+# Local audits, reports and notes (kept out of the repo)
+AUDIT*.md
+*-REPORT.md
+*-AUDIT.md
+SECURITY-*.md
+struc.txt

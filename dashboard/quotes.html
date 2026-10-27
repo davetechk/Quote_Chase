@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700;800&display=swap">
   <link rel="stylesheet" href="../css/main.css" />
   <link rel="stylesheet" href="../css/dashboard.css" />
+  <link rel="stylesheet" href="/css/logo.css" />
   <link rel="icon" href="/icons/favicon-32.png" type="image/png">
   <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
   <link rel="manifest" href="/manifest.webmanifest">
@@ -151,7 +152,7 @@
       return `<div class="followup-progress" title="Day 2, 5, 10, 20">${dots}<span class="fp-label">${sanitize(next)}</span></div>`;
     }
 
-    const viewedChip = q => q.view_count > 0 ? `<span class="chip">Viewed ${q.view_count}×</span>` : '';
+    const viewedChip = q => q.view_count > 0 ? `<span class="chip">Viewed ${sanitize(q.view_count)}×</span>` : '';
     const sourceChip = q => q.source === 'bcc' ? '<span class="chip chip--plain">From email</span>' : '';
 
     function quickActions(q) {

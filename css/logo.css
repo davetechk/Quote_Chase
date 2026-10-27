@@ -1,0 +1,10 @@
+/* The QuoteChase logo: the one place it's styled. Every page uses the same markup:
+   <a href="/" class="logo" aria-label="QuoteChase"><img src="/icons/logo-72.png" width="36" height="36" alt=""><span class="logo__word">Quote<span>Chase</span></span></a>
+   Light pages set --logo-ink to a dark colour. */
+.logo { display: inline-flex; align-items: center; gap: 12px; text-decoration: none; vertical-align: middle; }
+.logo img { width: 36px; height: 36px; flex: none; }
+.logo__word {
+  font-family: 'DM Sans', sans-serif; font-size: 20px; font-weight: 800; letter-spacing: -0.5px; line-height: 1;
+  color: var(--logo-ink, #F8F9FA);
+}
+.logo__word span { color: #FF7A00; font-weight: 400; }

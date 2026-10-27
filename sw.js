@@ -1,6 +1,6 @@
 // QuoteChase service worker — network-first, so new deploys show up straight away.
 // Bump CACHE when the precache list changes.
-const CACHE = 'qc-v3';
+const CACHE = 'qc-v4';
 const PRECACHE = [
   '/css/main.css', '/css/dashboard.css',
   '/js/auth.js', '/js/dashboard.js', '/js/supabase.js', '/js/tracker.js', '/js/vendor/supabase.js',
@@ -28,7 +28,8 @@ self.addEventListener('fetch', e => {
   if (req.method !== 'GET' || new URL(req.url).origin !== self.location.origin) return;
 
   e.respondWith(fetch(req).then(res => {
-    if (res.ok && !res.redirected) {
+    // Never cache URLs with a query string: they can carry tokens (?t=, ?invite=)
+    if (res.ok && !res.redirected && !new URL(req.url).search) {
       const copy = res.clone();
       caches.open(CACHE).then(c => c.put(req, copy));
     }

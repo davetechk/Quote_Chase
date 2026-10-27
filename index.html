@@ -9,6 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700;800&display=swap">
   <link rel="stylesheet" href="./css/main.css" />
+  <link rel="stylesheet" href="/css/logo.css" />
   <link rel="icon" href="/icons/favicon-32.png" type="image/png">
   <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
   <link rel="manifest" href="/manifest.webmanifest">
@@ -23,7 +24,7 @@
   function gtag(){dataLayer.push(arguments);}
   gtag('js', new Date());
 
-  gtag('config', 'G-VTYDGVXW89');
+  gtag('config', 'G-VTYDGVXW89', { page_location: location.origin + location.pathname }); // no query strings (invite tokens) to Google
 </script>
 
 
@@ -507,13 +508,7 @@
   <nav class="nav">
     <div class="nav__inner">
       <div style="display:flex;align-items:center;justify-content:space-between;height:64px;">
-        <a href="/" class="nav__logo">
-          <div class="logo-container" style="display: flex; align-items: center;">
-            <img src="/icons/logo-72.png" width="36" height="36" alt="QuoteChase Logo" style="margin-right: 12px;" />
-            <span style="font-family: 'DM Sans', sans-serif; font-size: 20px; font-weight: 800; color: #F8F9FA; letter-spacing: -0.5px;">Quote<span style="color: #FF7A00; font-weight: 400;">Chase</span>
-            </span>
-          </div>
-        </a>
+        <a href="/" class="logo" aria-label="QuoteChase"><img src="/icons/logo-72.png" width="36" height="36" alt=""><span class="logo__word">Quote<span>Chase</span></span></a>
         <div class="nav__links">
           <a href="#how-it-works" class="btn btn--ghost btn--sm" style="display:none;" id="nav-how">How it works</a>
           <a href="#pricing" class="btn btn--ghost btn--sm">Pricing</a>
@@ -954,11 +949,7 @@
     <div class="container">
       <div class="footer__inner">
         <div>
-          <div class="logo-container" style="display: flex; align-items: center;">
-            <img src="/icons/logo-72.png" loading="lazy" decoding="async" width="36" height="36" alt="QuoteChase Logo" style="margin-right: 12px;" />
-              <span style="font-family: 'DM Sans', sans-serif; font-size: 20px; font-weight: 800; color: #F8F9FA; letter-spacing: -0.5px;">Quote<span style="color: #FF7A00; font-weight: 400;">Chase</span>
-              </span>
-            </div>
+          <a href="/" class="logo" aria-label="QuoteChase"><img src="/icons/logo-72.png" width="36" height="36" alt=""><span class="logo__word">Quote<span>Chase</span></span></a>
           <p style="font-size:0.8rem;color:var(--text-3);margin-top:8px;">Win more jobs from the quotes you already send.</p>
         </div>
         <div class="footer__links">

@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700;800&display=swap">
   <link rel="stylesheet" href="../css/main.css" />
   <link rel="stylesheet" href="../css/dashboard.css" />
+  <link rel="stylesheet" href="/css/logo.css" />
   <link rel="icon" href="/icons/favicon-32.png" type="image/png">
   <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
   <link rel="manifest" href="/manifest.webmanifest">
@@ -108,7 +109,7 @@
             </div>
             <div class="form-group">
               <label class="form-label" for="inv-email">Customer email</label>
-              <input class="form-input" id="inv-email" type="email" inputmode="email" autocomplete="off" />
+              <input class="form-input" id="inv-email" type="email" maxlength="254" inputmode="email" autocomplete="off" />
             </div>
           </div>
           <div class="form-group">
@@ -310,6 +311,7 @@
         due_date: $('inv-due').value || null,
       };
       if (!row.customer_name) return flash('error-msg', 'Add the customer name.');
+      if (!$('inv-email').checkValidity()) return flash('error-msg', 'That customer email address looks wrong.');
       if (!items.length || items.some(i => !i.description || i.quantity <= 0 || i.unit_price < 0))
         return flash('error-msg', 'Each line needs a description, a quantity above 0 and a price.');
       if (row.tax_rate < 0 || row.tax_rate > 100) return flash('error-msg', 'Tax rate must be between 0 and 100.');

@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700;800&display=swap">
   <link rel="stylesheet" href="../css/main.css" />
   <link rel="stylesheet" href="../css/dashboard.css" />
+  <link rel="stylesheet" href="/css/logo.css" />
   <link rel="icon" href="/icons/favicon-32.png" type="image/png">
   <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
   <link rel="manifest" href="/manifest.webmanifest">
@@ -141,7 +142,7 @@
             <strong>${sanitize(q.customer_name)}</strong>
             <span class="list-item__sub">${q.status === 'replied'
               ? 'Replied — get back to them'
-              : `Opened ${sanitize(timeAgo(q.last_viewed_at))} · viewed ${q.view_count}×`}</span>
+              : `Opened ${sanitize(timeAgo(q.last_viewed_at))} · viewed ${sanitize(q.view_count)}×`}</span>
           </span>
           <span class="list-item__end">${sanitize(formatMoney(q.amount, q.currency))}</span>
         </a>`).join('') : '<div class="table-empty">Nothing needs you right now. 👍</div>';
